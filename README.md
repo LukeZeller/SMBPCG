@@ -14,5 +14,5 @@ pip install cma
 
 ## Authors
 * **Luke Zeller** - [LukeZeller](https://github.com/LukeZeller)
-* **Justin Mott** - [Justinmmott](https://github.com/justinmmott)
+* **Justin Mott** - [justinmmott](https://github.com/justinmmott)
 * **Saujas Nandi** - [s-nandi](https://github.com/s-nandi)
