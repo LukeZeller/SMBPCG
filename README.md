@@ -11,7 +11,7 @@ pip install cython
 pip install pyjnius
 pip install cma
 ```
-
+Java 1.8 is required as it is used for the Mario AI compeition 2009 A* agent made by Robin Baumgarten, https://github.com/RobinB/mario-astar-robinbaumgarten.
 ## Authors
 * **Luke Zeller** - [LukeZeller](https://github.com/LukeZeller)
 * **Justin Mott** - [justinmmott](https://github.com/justinmmott)
