@@ -9,7 +9,7 @@ pip install pyjnius
 pip install cma
 ```
 
-##Authors
+## Authors
 * **Luke Zeller** - [LukeZeller](https://github.com/LukeZeller)
 * **Justin Mott** - [Justinmmott](https://github.com/justinmmott)
 * **Saujas Nandi** - [s-nandi](https://github.com/s-nandi)
