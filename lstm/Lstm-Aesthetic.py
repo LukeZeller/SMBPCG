@@ -7,7 +7,6 @@ import random
 from datetime import datetime
 from tqdm import tqdm
 import os
-# import getopt
 
 random.seed(datetime.now())
 
@@ -16,8 +15,6 @@ parser.add_argument('directory')
 parser.add_argument('--niter', type=int, default=10,
                     help='number of epochs to train for')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--edim', type=int, default=32,
-                    help='number of embedding dimensions')
 parser.add_argument('--hdim', type=int, default=256,
                     help='number of hidden dimensions')
 parser.add_argument('--tsize', type=int, default=10,
@@ -26,7 +23,6 @@ parser.add_argument('--prob', type=int, default=30,
                     help='prob a pipe tile is changed')
 opt = parser.parse_args()
 
-EMBEDDING_DIM = opt.edim
 HIDDEN_DIM = opt.hdim
 
 assert torch.cuda.is_available()
@@ -43,8 +39,9 @@ EOS_token = 11
 
 
 def prepare_sequence(seq, to_index):
-    indecies = [to_index[w] for w in seq]
-    res = torch.tensor(indecies, dtype=torch.long, device=device).view(-1, 1)
+    indexes = [to_index[w] for w in seq]
+    indexes.append(EOS_token)
+    res = torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
     return res
 
 
@@ -57,6 +54,7 @@ def tensorsFromPair(pair):
 def prepareData():
     levelByColumnArray = []
     training_data = []
+    testing_data = []
     fileIndex = 0
     max_length = 0
     for filename in os.listdir(opt.directory):
@@ -72,8 +70,9 @@ def prepareData():
             for i in range(len(levelByRow)):
                 levelByColumn += str(levelByRow[i][j]) + " "
         levelByColumnArray.append(levelByColumn.split())
-        max_length = max(max_length, len(levelByColumnArray[fileIndex]))
-        training_data.append((levelByColumnArray, levelByColumnArray))
+        max_length = max(max_length, len(levelByColumnArray[fileIndex])) + 1
+        training_data.append((levelByColumnArray[fileIndex], levelByColumnArray[fileIndex]))
+        testing_data.append((levelByColumnArray[fileIndex], levelByColumnArray[fileIndex]))
 
         # Create Training Data
         for k in range(opt.tsize):
@@ -83,13 +82,22 @@ def prepareData():
                     proturbedLevel += random.choice(pieces) + " "
                 else:
                     proturbedLevel += levelByColumnArray[fileIndex][i] + " "
-            training_data.append((proturbedLevel.split(), levelByColumnArray))
+            training_data.append((proturbedLevel.split(), levelByColumnArray[fileIndex]))
+
+        # Create Testing Data
+        for k in range(opt.tsize):
+            proturbedLevel = ""
+            for i in range(len(levelByColumnArray[fileIndex])):
+                if levelByColumnArray[fileIndex][i] in pipe and random.randint(0, 99) < opt.prob:
+                    proturbedLevel += random.choice(pieces) + " "
+                else:
+                    proturbedLevel += levelByColumnArray[fileIndex][i] + " "
+            testing_data.append((proturbedLevel.split(), levelByColumnArray[fileIndex]))
         fileIndex += 1
-    return training_data, levelByColumnArray, max_length
+    return training_data, testing_data, levelByColumnArray, max_length
 
 
-training_data, levelByColumnArray, MAX_LENGTH = prepareData()
-
+training_data, testing_data, levelByColumnArray, MAX_LENGTH = prepareData()
 
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
@@ -258,7 +266,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
         decoder_hidden = encoder_hidden
 
         decoded_words = []
-        decoder_attentions = torch.zeros(max_length, max_length)
+        decoder_attentions = torch.zeros(max_length, max_length, device=device)
 
         for di in range(max_length):
             decoder_output, decoder_hidden, decoder_attention = decoder(
@@ -266,7 +274,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
             decoder_attentions[di] = decoder_attention.data
             topv, topi = decoder_output.data.topk(1)
             if topi.item() == EOS_token:
-                decoded_words.append('<EOS>')
+                decoded_words.append('~')
                 break
             else:
                 decoded_words.append(revTileMapping[topi.item()])
@@ -281,3 +289,43 @@ encoder1 = EncoderRNN(len(tileMapping), hidden_size).to(device)
 attn_decoder1 = AttnDecoderRNN(hidden_size, len(tileMapping), dropout_p=0.1).to(device)
 
 trainIters(encoder1, attn_decoder1)
+
+trainingCorrect = 0
+trainingFullyCorrect = 0
+total = 0
+for i in range(len(training_data)):
+
+    decoded_words_train, decoder_attentions = evaluate(encoder1, attn_decoder1, training_data[i][0])
+    # print(len(decoded_words_train))
+    isCorrect = True
+    for j in range(len(decoded_words_train) - 1):
+        total += 1
+        # print("Training Data " + str(training_data[i][1][j]))
+        # print("Decoded Word " + str(decoded_words_train[j]))
+        if decoded_words_train[j] == training_data[i][1][j]:
+            trainingCorrect += 1
+        else:
+            isCorrect = False
+    if isCorrect:
+        trainingFullyCorrect += 1
+accuracy = (trainingCorrect / total) * 100
+print("Training accuracy " + str(round(accuracy, 2)) + "%")
+print("Training level fully correct accuracy " + str(round(trainingFullyCorrect / len(training_data), 2)) + "%")
+
+testingCorrect = 0
+testingFullyCorrect = 0
+total = 0
+for i in range(len(testing_data)):
+    decoded_words_test, decoder_attentions = evaluate(encoder1, attn_decoder1, testing_data[i][0])
+    isCorrect = True
+    for j in range(len(decoded_words_test) - 1):
+        total += 1
+        if decoded_words_test[j] == testing_data[i][1][j]:
+            testingCorrect += 1
+        else:
+            isCorrect = False
+    if isCorrect:
+        testingFullyCorrect += 1
+accuracy = (testingCorrect / total) * 100
+print("Testing accuracy " + str(round(accuracy, 2)) + "%")
+print("Training level fully correct accuracy " + str(round(testingFullyCorrect / len(testing_data), 2)) + "%")
