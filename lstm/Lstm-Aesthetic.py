@@ -6,168 +6,278 @@ import argparse
 import random
 from datetime import datetime
 from tqdm import tqdm
-# import sys
+import os
 # import getopt
 
 random.seed(datetime.now())
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--niter', type=int, default=300,
+parser.add_argument('directory')
+parser.add_argument('--niter', type=int, default=10,
                     help='number of epochs to train for')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--edim', type=int, default=32,
                     help='number of embedding dimensions')
-parser.add_argument('--hdim', type=int, default=32,
+parser.add_argument('--hdim', type=int, default=256,
                     help='number of hidden dimensions')
-parser.add_argument('--tsize', type=int, default=100,
+parser.add_argument('--tsize', type=int, default=10,
                     help='number of training sets create per level')
 parser.add_argument('--prob', type=int, default=30,
                     help='prob a pipe tile is changed')
 opt = parser.parse_args()
 
-assert torch.cuda.is_available()
-torch.cuda.set_device(0)
-
-
-def prepare_sequence(seq, to_ix):
-    idxs = [to_ix[w] for w in seq]
-    res = torch.tensor(idxs, dtype=torch.long).cuda()
-    return res
-
-
-# numArg = len(sys.argv)
-# levelByRow = [[] for i in range(numArg)]
-# for i in range(numArg):
-
-with open("mario-1-1.txt") as textFile:
-    levelByRow = [list(line) for line in textFile]
-# We read in a text file version of SMB1 level 1-1 into a 2-D array
-# However, the LSTM will read the level column by column
-# So, it is necessary to swap rows and columns
-levelByColumn = ""
-for j in range(len(levelByRow[0])):
-    for i in range(len(levelByRow)):
-        levelByColumn += str(levelByRow[i][j]) + " "
-levelByColumnArray = levelByColumn.split()
-training_data = [(levelByColumnArray, levelByColumnArray)]
-
-pipe = ["<", ">", "[", "]"]
-pieces = ["X", "-", "<", ">", "[", "]"]
-piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
-tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
-               "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
-
-# Create Training Data
-numTiles = [0 for i in range(10)]
-for k in range(opt.tsize):
-    proturbedLevel = ""
-    for i in range(len(levelByColumnArray)):
-        numTiles[tileMapping[levelByColumnArray[i]]] += 1
-        if levelByColumnArray[i] in pipe and random.randint(0, 99) < opt.prob:
-            proturbedLevel += random.choice(piecesFull) + " "
-        else:
-            proturbedLevel += levelByColumnArray[i] + " "
-    training_data.append((proturbedLevel.split(), levelByColumnArray))
-print(numTiles)
 EMBEDDING_DIM = opt.edim
 HIDDEN_DIM = opt.hdim
 
+assert torch.cuda.is_available()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class LSTMTagger(nn.Module):
-
-    def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
-
-        super(LSTMTagger, self).__init__()
-        self.hidden_dim = hidden_dim
-
-        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-
-        # The LSTM takes word embeddings as inputs, and outputs hidden states
-        # with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-
-        # The linear layer that maps from hidden state space to tag space
-        self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
-
-    def forward(self, sentence):
-        embeds = self.word_embeddings(sentence)
-        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
-        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
-        tag_scores = F.log_softmax(tag_space, dim=1)
-        return tag_scores
+pipe = ["<", ">", "[", "]"]
+pieces = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
+tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
+               "E": 5, "<": 6, ">": 7, "[": 8, "]": 9,
+               "`": 10, "~": 11}
+revTileMapping = {v: k for k, v in tileMapping.items()}
+SOS_token = 10
+EOS_token = 11
 
 
-model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(tileMapping),
-                   len(tileMapping))
-model.cuda()
-loss_function = nn.NLLLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.1)
+def prepare_sequence(seq, to_index):
+    indecies = [to_index[w] for w in seq]
+    res = torch.tensor(indecies, dtype=torch.long, device=device).view(-1, 1)
+    return res
 
-for epoch in tqdm(range(opt.niter)):
-    for sentence, tags in training_data:
-        # Step 1. Remember that Pytorch accumulates gradients.
-        # We need to clear them out before each instance
-        model.zero_grad()
 
-        # Step 2. Get our inputs ready for the network
-        sentence_in = prepare_sequence(sentence, tileMapping)
-        targets = prepare_sequence(tags, tileMapping)
+def tensorsFromPair(pair):
+    input_tensor = prepare_sequence(pair[0], tileMapping)
+    target_tensor = prepare_sequence(pair[1], tileMapping)
+    return (input_tensor, target_tensor)
 
-        # Step 3. Run our forward pass.
-        tag_scores = model(sentence_in)
 
-        # Step 4. Compute the loss, gradients, and update the parameters by
-        #  calling optimizer.step()
-        loss = loss_function(tag_scores, targets)
-        loss.backward()
-        optimizer.step()
+def prepareData():
+    levelByColumnArray = []
+    training_data = []
+    fileIndex = 0
+    max_length = 0
+    for filename in os.listdir(opt.directory):
+        with open(opt.directory + "/" + filename) as textFile:
+            levelByRow = [list(line) for line in textFile]
 
-# Find training accuracy
-with torch.no_grad():
-    correct = 0
-    for i in range(len(training_data)):
-        inputs = prepare_sequence(training_data[i][0], tileMapping)
-        tag_scores = model(inputs)
-        values, indices = torch.max(tag_scores, 1)
-        for j in range(len(indices)):
-            if indices[j].item() == tileMapping[levelByColumnArray[j]]:
-                correct += 1
-    total = len(training_data) * len(indices)
-    accuracy = (correct / total) * 100
-    print("Training accuracy " + str(round(accuracy, 2)) + "%")
+        # We read in a text file version the level into a 2-D array
+        # However, the LSTM will read the level column by column
+        # So, it is necessary to swap rows and columns
 
-# Find Test accuracy
-with torch.no_grad():
-    testing_data = []
-    for k in range(opt.tsize):
-        proturbedLevel = ""
-        for i in range(len(levelByColumn)):
-            if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
-                proturbedLevel += random.choice(piecesFull) + " "
+        levelByColumn = ""
+        for j in range(len(levelByRow[0])):
+            for i in range(len(levelByRow)):
+                levelByColumn += str(levelByRow[i][j]) + " "
+        levelByColumnArray.append(levelByColumn.split())
+        max_length = max(max_length, len(levelByColumnArray[fileIndex]))
+        training_data.append((levelByColumnArray, levelByColumnArray))
+
+        # Create Training Data
+        for k in range(opt.tsize):
+            proturbedLevel = ""
+            for i in range(len(levelByColumnArray[fileIndex])):
+                if levelByColumnArray[fileIndex][i] in pipe and random.randint(0, 99) < opt.prob:
+                    proturbedLevel += random.choice(pieces) + " "
+                else:
+                    proturbedLevel += levelByColumnArray[fileIndex][i] + " "
+            training_data.append((proturbedLevel.split(), levelByColumnArray))
+        fileIndex += 1
+    return training_data, levelByColumnArray, max_length
+
+
+training_data, levelByColumnArray, MAX_LENGTH = prepareData()
+
+
+class EncoderRNN(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(EncoderRNN, self).__init__()
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size)
+
+    def forward(self, input, hidden):
+        embedded = self.embedding(input).view(1, 1, -1)
+        output = embedded
+        output, hidden = self.gru(output, hidden)
+        return output, hidden
+
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=device)
+
+
+class DecoderRNN(nn.Module):
+    def __init__(self, hidden_size, output_size):
+        super(DecoderRNN, self).__init__()
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size)
+        self.out = nn.Linear(hidden_size, output_size)
+        self.softmax = nn.LogSoftmax(dim=1)
+
+    def forward(self, input, hidden):
+        output = self.embedding(input).view(1, 1, -1)
+        output = F.relu(output)
+        output, hidden = self.gru(output, hidden)
+        output = self.softmax(self.out(output[0]))
+        return output, hidden
+
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=device)
+
+
+class AttnDecoderRNN(nn.Module):
+    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=MAX_LENGTH):
+        super(AttnDecoderRNN, self).__init__()
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.dropout_p = dropout_p
+        self.max_length = max_length
+
+        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        self.dropout = nn.Dropout(self.dropout_p)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+        self.out = nn.Linear(self.hidden_size, self.output_size)
+
+    def forward(self, input, hidden, encoder_outputs):
+        embedded = self.embedding(input).view(1, 1, -1)
+        embedded = self.dropout(embedded)
+
+        attn_weights = F.softmax(
+            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
+        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
+                                 encoder_outputs.unsqueeze(0))
+
+        output = torch.cat((embedded[0], attn_applied[0]), 1)
+        output = self.attn_combine(output).unsqueeze(0)
+
+        output = F.relu(output)
+        output, hidden = self.gru(output, hidden)
+
+        output = F.log_softmax(self.out(output[0]), dim=1)
+        return output, hidden, attn_weights
+
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=device)
+
+
+teacher_forcing_ratio = 0.5
+
+
+def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
+          decoder_optimizer, criterion, max_length=MAX_LENGTH):
+    encoder_hidden = encoder.initHidden()
+
+    encoder_optimizer.zero_grad()
+    decoder_optimizer.zero_grad()
+
+    input_length = input_tensor.size(0)
+    target_length = target_tensor.size(0)
+
+    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
+
+    loss = 0
+
+    for ei in range(input_length):
+        encoder_output, encoder_hidden = encoder(
+            input_tensor[ei], encoder_hidden)
+        encoder_outputs[ei] = encoder_output[0, 0]
+
+    decoder_input = torch.tensor([[SOS_token]], device=device)
+
+    decoder_hidden = encoder_hidden
+
+    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+
+    if use_teacher_forcing:
+        # Teacher forcing: Feed the target as the next input
+        for di in range(target_length):
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
+            loss += criterion(decoder_output, target_tensor[di])
+            decoder_input = target_tensor[di]  # Teacher forcing
+
+    else:
+        # Without teacher forcing: use its own predictions as the next input
+        for di in range(target_length):
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
+            topv, topi = decoder_output.topk(1)
+            decoder_input = topi.squeeze().detach()  # detach from history as input
+
+            loss += criterion(decoder_output, target_tensor[di])
+            if decoder_input.item() == EOS_token:
+                break
+
+    loss.backward()
+
+    encoder_optimizer.step()
+    decoder_optimizer.step()
+
+    return loss.item() / target_length
+
+
+def trainIters(encoder, decoder, learning_rate=0.01):
+
+    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
+    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    training_pairs = [tensorsFromPair(random.choice(training_data))
+                      for i in range(opt.niter)]
+    criterion = nn.NLLLoss()
+
+    for iter in tqdm(range(1, opt.niter + 1)):
+        training_pair = training_pairs[iter - 1]
+        input_tensor = training_pair[0]
+        target_tensor = training_pair[1]
+
+        train(input_tensor, target_tensor, encoder,
+              decoder, encoder_optimizer, decoder_optimizer, criterion)
+
+
+def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
+    with torch.no_grad():
+        input_tensor = prepare_sequence(sentence, tileMapping)
+        input_length = input_tensor.size()[0]
+        encoder_hidden = encoder.initHidden()
+
+        encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
+
+        for ei in range(input_length):
+            encoder_output, encoder_hidden = encoder(input_tensor[ei],
+                                                     encoder_hidden)
+            encoder_outputs[ei] += encoder_output[0, 0]
+
+        decoder_input = torch.tensor([[SOS_token]], device=device)  # SOS
+
+        decoder_hidden = encoder_hidden
+
+        decoded_words = []
+        decoder_attentions = torch.zeros(max_length, max_length)
+
+        for di in range(max_length):
+            decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_input, decoder_hidden, encoder_outputs)
+            decoder_attentions[di] = decoder_attention.data
+            topv, topi = decoder_output.data.topk(1)
+            if topi.item() == EOS_token:
+                decoded_words.append('<EOS>')
+                break
             else:
-                proturbedLevel += levelByColumn[i] + " "
-        testing_data.append((proturbedLevel.split(), levelByColumnArray))
-    correct = 0
-    fullCorrect = 0
-    tilesIncorrect = [[0 for i in range(10)] for j in range(10)]
-    for i in range(len(testing_data)):
-        inputs = prepare_sequence(testing_data[i][0], tileMapping)
-        tag_scores = model(inputs)
-        values, indices = torch.max(tag_scores, 1)
-        isCorrect = True
-        for j in range(len(indices)):
-            if indices[j].item() == tileMapping[levelByColumnArray[j]]:
-                correct += 1
-            else:
-                isCorrect = False
-                tilesIncorrect[tileMapping[levelByColumnArray[j]]][indices[j].item()] += 1
-        if isCorrect:
-            fullCorrect += 1
-    total = len(testing_data) * len(indices)
-    accuracy = (correct / total) * 100
-    print("Testing accuracy " + str(round(accuracy, 2)) + "%")
-    fullAccuracy = (fullCorrect / len(testing_data)) * 100
-    print("Testing levels that were fully correct: " +
-          str(round(fullAccuracy, 2)) + "%")
-    for row in tilesIncorrect:
-        print(row)
+                decoded_words.append(revTileMapping[topi.item()])
+
+            decoder_input = topi.squeeze().detach()
+
+        return decoded_words, decoder_attentions[:di + 1]
+
+
+hidden_size = opt.hdim
+encoder1 = EncoderRNN(len(tileMapping), hidden_size).to(device)
+attn_decoder1 = AttnDecoderRNN(hidden_size, len(tileMapping), dropout_p=0.1).to(device)
+
+trainIters(encoder1, attn_decoder1)
