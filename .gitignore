@@ -6,6 +6,9 @@
 *~
 \#*#
 
+# Python Cache files
+__pycache__/
+
 # Ignore config.yml (local config file) -- template stored in git is config.yml_git_version
 config/config.yml
 
