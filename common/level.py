@@ -20,7 +20,7 @@ char_int_map = {
 }
 
 int_char_map = {
-    0: 'X'
+    0 : 'X',
     1 : 'S',
     2 : '-',
     3 : '?',
@@ -40,24 +40,24 @@ class Level(object):
     # Note: If data array is present, width / height parameters are ignored.
     #       In this case, Level should be initialized as Level(data = ...)
     def __init__(self, width = DEFAULT_LEVEL_WIDTH, height = DEFAULT_LEVEL_HEIGHT, data = None):
-        if data:
+        if data is not None:
             self.__initialize_from_data(data)
         else:
             self.width = width
             self.height = height
             # Initialize array with 1's ( = 'S') so level is empty space
-            self.tiles = np.ones((height, width), np.int)
+            self.__tiles = np.ones((height, width), dtype=np.int)
 
     # Currently, data be python list or numpy array
     def __initialize_from_data(self, data):
         if type(data) is list:
             self.width = len(data[0])
             self.height = len(data)
-            self.tiles = np.array(data)
+            self.__tiles = np.array(data)
         elif type(data) is np.ndarray:
             self.width = data.shape[1]
             self.height = data.shape[0]
-            self.tiles = np.copy(data)
+            self.__tiles = np.copy(data)
         else:
             raise TypeError("Parameter data must be python list or numpy array.")
 
@@ -70,11 +70,11 @@ class Level(object):
 
     def get_tile_char(self, x, y):
         self.__bounds_check(x, y)
-        return int_char_map[self.tiles[y, x]]
+        return int_char_map[int(self.__tiles[y, x])]
 
     def get_tile_int(self, x, y):
         self.__bounds_check(x, y)
-        return self.tiles[y, x]
+        return int(self.__tiles[y, x])
     
     def set_tile_char(self, x, y, tile_c):
         self.__bounds_check(x, y)
