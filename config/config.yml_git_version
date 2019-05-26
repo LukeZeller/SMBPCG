@@ -1,0 +1,19 @@
+# Placeholder value is used to indicate that value should be replaced
+# with proper value in local configuration
+git_placeholder: &placeholder_ref 2209843298
+
+# Placeholder value indicating that default value should be used
+default_placeholder: &default_ref 0213080909
+
+# Any configuration values that should be loaded into the environment
+# For any variables with default behavior indicated, comment or remove
+# line with variable below to use default behavior
+environment:
+  # JRE/JDK home directory on local machine, e.g. /path/to/java/jreVERSION/bin
+  JAVA_HOME: *placeholder_ref
+  # Directory containing jvm binary (jvm.; e.g. /path/to/java/jreVERSION/bin/server)
+  # Default behavior: If JAVA_HOME is set, PATH += %JAVA_HOME%/server;
+  PATH: *placeholder_ref
+  # Directory containing simulator JAR or class files (e.g. /path/to/project/simulator/target/classes)
+  # Default behavior: CLASSPATH += [Directory of config.py]/../simulator/target/classes
+  CLASSPATH: *placeholder_ref
