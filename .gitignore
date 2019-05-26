@@ -14,3 +14,6 @@ config/config.yml
 
 # Python CMA output directory
 outcmaes/
+
+# Temporarily ignore directory holding old files (directory should be removed eventually)
+gan/original_files/
