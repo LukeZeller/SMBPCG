@@ -6,6 +6,7 @@ import argparse
 import random
 from datetime import datetime
 from tqdm import tqdm
+import numpy as np
 import os
 
 random.seed(datetime.now())
@@ -29,69 +30,51 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 pipe = ["<", ">", "[", "]"]
 pieces = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
-               "E": 5, "<": 6, ">": 7, "[": 8, "]": 9,
-               "`": 10}
+               "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
 revTileMapping = {v: k for k, v in tileMapping.items()}
-SOS_token = 10
-
-
-def prepare_sequence(seq, to_index):
-    indexes = [to_index[w] for w in seq]
-    res = torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
-    return res
-
-
-def tensorsFromPair(pair):
-    input_tensor = prepare_sequence(pair[0], tileMapping)
-    target_tensor = prepare_sequence(pair[1], tileMapping)
-    return (input_tensor, target_tensor)
 
 
 def prepareData():
-    levelByColumnArray = []
     training_data = []
     testing_data = []
     fileIndex = 0
+    maxLength = 0
     for filename in os.listdir(opt.directory):
+        levelByColumn = []
         with open(opt.directory + "/" + filename) as textFile:
-            levelByRow = [list(line) for line in textFile]
-
+            levelByRow = np.array([list(line) for line in textFile])
+        levelByRow = levelByRow[:, :-1]
         # We read in a text file version the level into a 2-D array
         # However, the LSTM will read the level column by column
-        # So, it is necessary to swap rows and columns
-
-        levelByColumn = ""
+        # So, it is necessary to swap rows and columns and then flatten the level
         for j in range(len(levelByRow[0])):
             for i in range(len(levelByRow)):
-                levelByColumn += str(levelByRow[i][j]) + " "
-        levelByColumnArray.append(levelByColumn.split())
-        training_data.append((levelByColumnArray[fileIndex], levelByColumnArray[fileIndex]))
-        testing_data.append((levelByColumnArray[fileIndex], levelByColumnArray[fileIndex]))
-
+                levelByColumn.append(levelByRow[i][j])
+        maxLength = max(maxLength, len(levelByColumn))
         # Create Training Data
         for k in range(opt.tsize):
-            proturbedLevel = ""
-            for i in range(len(levelByColumnArray[fileIndex])):
-                if levelByColumnArray[fileIndex][i] in pipe and random.randint(0, 99) < opt.prob:
-                    proturbedLevel += random.choice(pieces) + " "
+            proturbedLevel = []
+            for i in range(len(levelByColumn)):
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
+                    proturbedLevel.append(random.choice(pieces))
                 else:
-                    proturbedLevel += levelByColumnArray[fileIndex][i] + " "
-            training_data.append((proturbedLevel.split(), levelByColumnArray[fileIndex]))
+                    proturbedLevel.append(levelByColumn[i])
+            training_data.append((proturbedLevel, levelByColumn))
 
         # Create Testing Data
-        for k in range(opt.tsize):
-            proturbedLevel = ""
-            for i in range(len(levelByColumnArray[fileIndex])):
-                if levelByColumnArray[fileIndex][i] in pipe and random.randint(0, 99) < opt.prob:
-                    proturbedLevel += random.choice(pieces) + " "
+        for k in range(10):
+            proturbedLevel = []
+            for i in range(len(levelByColumn)):
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
+                    proturbedLevel.append(random.choice(pieces))
                 else:
-                    proturbedLevel += levelByColumnArray[fileIndex][i] + " "
-            testing_data.append((proturbedLevel.split(), levelByColumnArray[fileIndex]))
+                    proturbedLevel.append(levelByColumn[i])
+            testing_data.append((proturbedLevel, levelByColumn))
         fileIndex += 1
-    return training_data, testing_data, levelByColumnArray
+    return training_data, testing_data, maxLength
 
 
-training_data, testing_data, levelByColumnArray = prepareData()
+training_data, testing_data, MAX_LENGTH = prepareData()
 
 
 class EncoderRNN(nn.Module):
@@ -134,13 +117,15 @@ class DecoderRNN(nn.Module):
 
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dropout_p=0.1):
+    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=MAX_LENGTH):
         super(AttnDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.dropout_p = dropout_p
+        self.max_length = max_length
+
         self.embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn = nn.Linear(self.hidden_size * 2, max([len(training_data[i][0]) for i in range(len(training_data))]))
+        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
@@ -168,11 +153,18 @@ class AttnDecoderRNN(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
 
-teacher_forcing_ratio = 0.5
+def tensorFromSequence(seq, mapping):
+    indexes = [mapping[w] for w in seq]
+    return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
 
 
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
-          decoder_optimizer, criterion):
+def tensorsFromPair(pair):
+    input_tensor = tensorFromSequence(pair[0], tileMapping)
+    target_tensor = tensorFromSequence(pair[1], tileMapping)
+    return (input_tensor, target_tensor)
+
+
+def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, max_length=MAX_LENGTH):
     encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
@@ -180,38 +172,25 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
 
     input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
-    encoder_outputs = torch.zeros(target_length, encoder.hidden_size, device=device)
+
+    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
     loss = 0
 
-    for ei in range(input_length):
+    for ei in range(1, input_length):
         encoder_output, encoder_hidden = encoder(
             input_tensor[ei], encoder_hidden)
         encoder_outputs[ei] = encoder_output[0, 0]
 
-    decoder_input = torch.tensor([[SOS_token]], device=device)
+    decoder_input = torch.tensor([[2]], device=device)
 
     decoder_hidden = encoder_hidden
 
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-
-    if use_teacher_forcing:
-        # Teacher forcing: Feed the target as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            loss += criterion(decoder_output, target_tensor[di])
-            decoder_input = target_tensor[di]  # Teacher forcing
-
-    else:
-        # Without teacher forcing: use its own predictions as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            topv, topi = decoder_output.topk(1)
-            decoder_input = topi.squeeze().detach()  # detach from history as input
-
-            loss += criterion(decoder_output, target_tensor[di])
+    for di in range(target_length):
+        decoder_output, decoder_hidden, decoder_attention = decoder(
+            decoder_input, decoder_hidden, encoder_outputs)
+        loss += criterion(decoder_output, target_tensor[di])
+        decoder_input = target_tensor[di]
 
     loss.backward()
 
@@ -222,42 +201,42 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
 
 
 def trainIters(encoder, decoder, learning_rate=0.01):
+    n_iters = opt.niter
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+
     criterion = nn.NLLLoss()
 
-    for iter in tqdm(range(1, opt.niter + 1)):
+    for iter in tqdm(range(n_iters)):
         for i in range(len(training_data)):
-            training_pair = tensorsFromPair(training_data[i])
-            input_tensor = training_pair[0]
-            target_tensor = training_pair[1]
+            training_pair = training_data[i]
+            input_tensor = tensorFromSequence(training_pair[0], tileMapping)
+            target_tensor = tensorFromSequence(training_pair[1], tileMapping)
 
-        train(input_tensor, target_tensor, encoder,
-              decoder, encoder_optimizer, decoder_optimizer, criterion)
+        train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion)
 
 
-def evaluate(encoder, decoder, sentence):
+def evaluate(encoder, decoder, sequence, max_length=MAX_LENGTH):
     with torch.no_grad():
-        input_tensor = prepare_sequence(sentence, tileMapping)
+        input_tensor = tensorFromSequence(sequence, tileMapping)
         input_length = input_tensor.size()[0]
         encoder_hidden = encoder.initHidden()
 
-        encoder_outputs = torch.zeros(len(sentence), encoder.hidden_size, device=device)
+        encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
-        for ei in range(input_length):
+        for ei in range(1, input_length):
             encoder_output, encoder_hidden = encoder(input_tensor[ei],
                                                      encoder_hidden)
             encoder_outputs[ei] += encoder_output[0, 0]
 
-        decoder_input = torch.tensor([[SOS_token]], device=device)  # SOS
-
+        decoder_input = torch.tensor([[2]], device=device)
         decoder_hidden = encoder_hidden
 
         decoded_words = []
-        decoder_attentions = torch.zeros(len(sentence), len(sentence), device=device)
+        decoder_attentions = torch.zeros(max_length, max_length)
 
-        for di in range(len(sentence)):
+        for di in range(max_length):
             decoder_output, decoder_hidden, decoder_attention = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             decoder_attentions[di] = decoder_attention.data
@@ -270,34 +249,12 @@ def evaluate(encoder, decoder, sentence):
 
 
 hidden_size = opt.hdim
-encoder1 = EncoderRNN(len(tileMapping), hidden_size).to(device)
-attn_decoder1 = AttnDecoderRNN(hidden_size, len(tileMapping), dropout_p=0.1).to(device)
+encoder1 = EncoderRNN(len(training_data), hidden_size).to(device)
+attn_decoder1 = AttnDecoderRNN(hidden_size, len(training_data)).to(device)
 
 trainIters(encoder1, attn_decoder1)
 
 torch.save({'encoder': encoder1.state_dict(), 'decoder': attn_decoder1.state_dict}, "lstm_" + str(opt.tsize) + "_" + str(opt.niter) + ".pth")
-
-trainingCorrect = 0
-trainingFullyCorrect = 0
-total = 0
-for i in tqdm(range(len(training_data))):
-
-    decoded_words_train, decoder_attentions = evaluate(encoder1, attn_decoder1, training_data[i][0])
-    isCorrect = True
-    for j in range(len(decoded_words_train) - 1):
-        total += 1
-        # print("Training Data " + str(training_data[i][1][j]))
-        # print("Decoded Word " + str(decoded_words_train[j]))
-        if decoded_words_train[j] == training_data[i][1][j]:
-            trainingCorrect += 1
-        else:
-            isCorrect = False
-    if isCorrect:
-        trainingFullyCorrect += 1
-
-accuracy = (trainingCorrect / total) * 100
-print("Training accuracy " + str(round(accuracy, 2)) + "%")
-print("Training level fully correct accuracy " + str(round(trainingFullyCorrect / len(training_data), 2)) + "%")
 
 testingCorrect = 0
 testingFullyCorrect = 0
@@ -305,6 +262,7 @@ total = 0
 for i in tqdm(range(len(testing_data))):
     decoded_words_test, decoder_attentions = evaluate(encoder1, attn_decoder1, testing_data[i][0])
     isCorrect = True
+    print(decoded_words_test)
     for j in range(len(decoded_words_test) - 1):
         total += 1
         if decoded_words_test[j] == testing_data[i][1][j]:
