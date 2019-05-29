@@ -79,10 +79,11 @@ def prepareData():
             for i in range(len(levelByColumn)):
                 if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
                     proturbedLevel.append(random.choice(pieces))
+                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.prob:
+                    proturbedLevel.append(random.choice(pieces))
                 else:
                     proturbedLevel.append(levelByColumn[i])
             training_data.append((proturbedLevel, levelByColumn))
-
         # Create Testing Data
         for k in range(10):
             proturbedLevel = []
@@ -96,7 +97,12 @@ def prepareData():
 
 
 training_data, testing_data = prepareData()
-
+for i, data in enumerate(training_data):
+    swapi = random.randrange(i, len(training_data))
+    training_data[i], training_data[swapi] = training_data[swapi], data
+for i, data in enumerate(testing_data):
+    swapi = random.randrange(i, len(testing_data))
+    testing_data[i], testing_data[swapi] = testing_data[swapi], data
 
 EMBEDDING_DIM = opt.edim
 HIDDEN_DIM = opt.hdim
@@ -129,6 +135,10 @@ class LSTMTagger(nn.Module):
 model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(tileMapping),
                    len(tileMapping))
 model.cuda()
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    model = nn.DataParallel(model)
+
 loss_function = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1)
 
@@ -156,30 +166,23 @@ torch.save(model.state_dict(), "lstm_" + str(opt.tsize) + "_" + str(opt.niter) +
 # Find training accuracy
 with torch.no_grad():
     correct = 0
+    total = 0
     for i in range(len(training_data)):
         inputs = prepare_sequence(training_data[i][0], tileMapping)
         tag_scores = model(inputs)
         values, indices = torch.max(tag_scores, 1)
         for j in range(len(indices)):
-            if indices[j].item() == tileMapping[levelByColumnArray[j]]:
+            total += 1
+            if indices[j].item() == tileMapping[training_data[i][1][j]]:
                 correct += 1
-    total = len(training_data) * len(indices)
     accuracy = (correct / total) * 100
     print("Training accuracy " + str(round(accuracy, 2)) + "%")
 
 # Find Test accuracy
 with torch.no_grad():
-    testing_data = []
-    for k in range(opt.tsize):
-        proturbedLevel = ""
-        for i in range(len(levelByColumn)):
-            if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
-                proturbedLevel += random.choice(piecesFull) + " "
-            else:
-                proturbedLevel += levelByColumn[i] + " "
-        testing_data.append((proturbedLevel.split(), levelByColumnArray))
     correct = 0
     fullCorrect = 0
+    total = 0
     tilesIncorrect = [[0 for i in range(10)] for j in range(10)]
     for i in range(len(testing_data)):
         inputs = prepare_sequence(testing_data[i][0], tileMapping)
@@ -187,14 +190,14 @@ with torch.no_grad():
         values, indices = torch.max(tag_scores, 1)
         isCorrect = True
         for j in range(len(indices)):
-            if indices[j].item() == tileMapping[levelByColumnArray[j]]:
+            total += 1
+            if indices[j].item() == tileMapping[testing_data[i][1][j]]:
                 correct += 1
             else:
                 isCorrect = False
-                tilesIncorrect[tileMapping[levelByColumnArray[j]]][indices[j].item()] += 1
+                tilesIncorrect[tileMapping[testing_data[i][1][j]]][indices[j].item()] += 1
         if isCorrect:
             fullCorrect += 1
-    total = len(testing_data) * len(indices)
     accuracy = (correct / total) * 100
     print("Testing accuracy " + str(round(accuracy, 2)) + "%")
     fullAccuracy = (fullCorrect / len(testing_data)) * 100
