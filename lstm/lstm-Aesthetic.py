@@ -6,12 +6,13 @@ import argparse
 import random
 from datetime import datetime
 from tqdm import tqdm
-# import sys
-# import getopt
+import numpy as np
+import os
 
 random.seed(datetime.now())
 
 parser = argparse.ArgumentParser()
+parser.add_argument('directory')
 parser.add_argument('--niter', type=int, default=300,
                     help='number of epochs to train for')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -57,18 +58,46 @@ piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
                "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
 
-# Create Training Data
-numTiles = [0 for i in range(10)]
-for k in range(opt.tsize):
-    proturbedLevel = ""
-    for i in range(len(levelByColumnArray)):
-        numTiles[tileMapping[levelByColumnArray[i]]] += 1
-        if levelByColumnArray[i] in pipe and random.randint(0, 99) < opt.prob:
-            proturbedLevel += random.choice(piecesFull) + " "
-        else:
-            proturbedLevel += levelByColumnArray[i] + " "
-    training_data.append((proturbedLevel.split(), levelByColumnArray))
-print(numTiles)
+
+def prepareData():
+    training_data = []
+    testing_data = []
+    for filename in os.listdir(opt.directory):
+        levelByColumn = []
+        with open(opt.directory + "/" + filename) as textFile:
+            levelByRow = np.array([list(line) for line in textFile])
+        levelByRow = levelByRow[:, :-1]
+        # We read in a text file version the level into a 2-D array
+        # However, the LSTM will read the level column by column
+        # So, it is necessary to swap rows and columns and then flatten the level
+        for j in range(len(levelByRow[0])):
+            for i in range(len(levelByRow)):
+                levelByColumn.append(levelByRow[i][j])
+        # Create Training Data
+        for k in range(opt.tsize):
+            proturbedLevel = []
+            for i in range(len(levelByColumn)):
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
+                    proturbedLevel.append(random.choice(pieces))
+                else:
+                    proturbedLevel.append(levelByColumn[i])
+            training_data.append((proturbedLevel, levelByColumn))
+
+        # Create Testing Data
+        for k in range(10):
+            proturbedLevel = []
+            for i in range(len(levelByColumn)):
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
+                    proturbedLevel.append(random.choice(pieces))
+                else:
+                    proturbedLevel.append(levelByColumn[i])
+            testing_data.append((proturbedLevel, levelByColumn))
+    return training_data, testing_data
+
+
+training_data, testing_data = prepareData()
+
+
 EMBEDDING_DIM = opt.edim
 HIDDEN_DIM = opt.hdim
 

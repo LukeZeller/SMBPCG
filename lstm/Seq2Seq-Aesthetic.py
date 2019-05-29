@@ -189,8 +189,10 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     for di in range(target_length):
         decoder_output, decoder_hidden, decoder_attention = decoder(
             decoder_input, decoder_hidden, encoder_outputs)
+        topv, topi = decoder_output.topk(1)
+        decoder_input = topi.squeeze().detach()  # detach from history as input
+
         loss += criterion(decoder_output, target_tensor[di])
-        decoder_input = target_tensor[di]
 
     loss.backward()
 
