@@ -21,7 +21,7 @@ ROOT_DIR = str(ROOT_DIR_PATH)
 # no work to do.
 if isinstance(ROOT_DIR_PATH, pathlib.PosixPath):
     SYS_ENV_DELIMITER = ':'
-elif isinstance(ROOT_DIR_PATH, pathlib.WindowsPath)
+elif isinstance(ROOT_DIR_PATH, pathlib.WindowsPath):
     SYS_ENV_DELIMITER = ';'
 else:
     raise RuntimeError( (
