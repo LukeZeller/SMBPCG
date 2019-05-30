@@ -168,19 +168,19 @@ for epoch in tqdm(range(opt.niter)):
 torch.save(model.state_dict(), "lstm_" + str(opt.tsize) + "_" + str(opt.niter) + ".pth")
 
 # Find training accuracy
-with torch.no_grad():
-    correct = 0
-    total = 0
-    for i in range(len(training_data)):
-        inputs = prepare_sequence(training_data[i][0], tileMapping)
-        tag_scores = model(inputs)
-        values, indices = torch.max(tag_scores, 1)
-        for j in range(len(indices)):
-            total += 1
-            if indices[j].item() == tileMapping[training_data[i][1][j]]:
-                correct += 1
-    accuracy = (correct / total) * 100
-    print("Training accuracy " + str(round(accuracy, 2)) + "%")
+# with torch.no_grad():
+#     correct = 0
+#     total = 0
+#     for i in range(len(training_data)):
+#         inputs = prepare_sequence(training_data[i][0], tileMapping)
+#         tag_scores = model(inputs)
+#         values, indices = torch.max(tag_scores, 1)
+#         for j in range(len(indices)):
+#             total += 1
+#             if indices[j].item() == tileMapping[training_data[i][1][j]]:
+#                 correct += 1
+#     accuracy = (correct / total) * 100
+#     print("Training accuracy " + str(round(accuracy, 2)) + "%")
 
 # Find Test accuracy
 with torch.no_grad():
