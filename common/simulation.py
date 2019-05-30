@@ -60,6 +60,11 @@ class _EvaluationInfoProxy(object):
                 "Java EvaluationInfo class does not have attribute '" + name + "'."
             )
 
+    def __str__(self):
+        if self.has_instance():
+            return self.__instance.toString()
+        return "Unbound _EvaluationInfoProxy (no associated instance of EvaluationInfo).\n"
+    
     def has_instance(self):
         return self.__instance is not None
         
