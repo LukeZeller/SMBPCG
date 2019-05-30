@@ -15,6 +15,20 @@ ROOT_DIR_PATH = CONFIG_DIR_PATH.parent
 # String version of ROOT_DIR_PATH
 ROOT_DIR = str(ROOT_DIR_PATH)
 
+# OS-dependent delimiter for environment variables -- : (colon) for Posix,
+# ; (semicolon) for Windows. Conveniently, the distinction is identical to
+# the PosixPath vs. WindowsPath distinction in pathlib so we have basically
+# no work to do.
+if isinstance(ROOT_DIR_PATH, pathlib.PosixPath):
+    SYS_ENV_DELIMITER = ':'
+elif isinstance(ROOT_DIR_PATH, pathlib.WindowsPath)
+    SYS_ENV_DELIMITER = ';'
+else:
+    raise RuntimeError( (
+        "Unexpected error: System appears to be neither Windows nor posix-like. "
+        "Are you attempting to run this code on a TI-84?" )
+    )
+
 # Global variables for config data
 conf_data = None
 git_placeholder = None
@@ -41,7 +55,7 @@ def get_absolute_path(rel_p, base_p = ROOT_DIR_PATH):
 
 # ---- Environment Helper Functions ----
 
-# TODO: Implement default placeholder to use 
+# TODO: Implement default placeholder for unused/preset/default fields
 
 def setup_environment():
     load_config()
@@ -70,12 +84,12 @@ def setup_environment():
     if 'CLASSPATH' not in conf_data['environment']:
         _env_set_or_append('CLASSPATH', get_absolute_path(JAVA_CLASSPATH_REL))
 
-def _env_set_or_append(var, val):
+def _env_set_or_append(var, val, allow_append=False):
     # Argument val is assumed not to have terminating semicolon
-    val += ';'
-    if var in os.environ:
-        if os.environ[var][-1] != ';':
-            os.environ[var] += ';'
+    val += SYS_ENV_DELIMITER
+    if var in os.environ and allow_append:
+        if os.environ[var][-1] != SYS_ENV_DELIMITER:
+            os.environ[var] += SYS_ENV_DELIMITER
         # Withoug this condition, identical values can be repeatedly appended to the same
         # environment variable. This can occur, for example, if multiple processes with
         # distinct memory but shared environment import this module
