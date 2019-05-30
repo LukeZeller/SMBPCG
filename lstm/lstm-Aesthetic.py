@@ -16,9 +16,9 @@ parser.add_argument('directory')
 parser.add_argument('--niter', type=int, default=300,
                     help='number of epochs to train for')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--edim', type=int, default=32,
+parser.add_argument('--edim', type=int, default=256,
                     help='number of embedding dimensions')
-parser.add_argument('--hdim', type=int, default=32,
+parser.add_argument('--hdim', type=int, default=256,
                     help='number of hidden dimensions')
 parser.add_argument('--tsize', type=int, default=100,
                     help='number of training sets create per level')
@@ -129,6 +129,7 @@ class LSTMTagger(nn.Module):
         self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
 
     def forward(self, sentence):
+        self.lstm.flatten_parameters()
         embeds = self.word_embeddings(sentence)
         lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
