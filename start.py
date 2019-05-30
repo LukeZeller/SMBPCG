@@ -13,20 +13,13 @@ def test_gan():
     latent_vector = np.random.uniform(-1, 1, 32)
     level = generate.apply_generator(latent_vector)
 
-    sim_proxy = SimulationProxy(level = level, agent = create_human_agent(), visualize = True)
+    sim_proxy = SimulationProxy(level = level, agent = create_astar_agent(), visualize = True)
     sim_proxy.invoke()
     
-    print(sim_proxy.eval_info.marioMoves.viewJumps())
-    
-    moves = sim_proxy.eval_info.marioMoves
-    sim_proxy2 = SimulationProxy(level = level, agent = create_forced_agent(moves), visualize = True)
-    sim_proxy2.invoke()
-    print(sim_proxy2.eval_info.marioMoves.viewJumps())
-        
     fitness = evolve._fitness_function(level)
 
     # For testing purposes
-    return latent_vector, sim_proxy2.eval_info, fitness
+    return latent_vector, sim_proxy.eval_info, fitness
 
 
 def test_evolution():

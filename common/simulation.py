@@ -93,7 +93,9 @@ class SimulationProxy(object):
     @staticmethod
     def from_json_file(json_fname, human_tested = False):
         level = common.level.load_level_from_json(json_fname)
-        return SimulationProxy(level, human_tested)
+        agent = common.agents.create_astar_agent() if not human_tested else \
+                common.agents.create_human_agent()
+        return SimulationProxy(level, agent)
         
     def __init__(self, level = None, agent = None, visualize = None):
         self.__level = level
