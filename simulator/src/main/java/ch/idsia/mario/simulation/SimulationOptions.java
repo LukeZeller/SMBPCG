@@ -69,7 +69,11 @@ public class SimulationOptions extends ParameterContainer
 //        return a(getParameterValue("-ag"));      }
         if (agent == null)
         {
-            System.out.println("Info: Agent not specified. Default " + AgentsPool.getCurrentAgent().getName() + " has been used instead");
+            /* getAgent often called before Agent is actually set, resulting in spurious output during real A* simulations.
+            Easiest solution to avoid java spamming console output is commenting out next line (which I did). Could alternately
+            be legitimately refactored to handle above case but we have no need to do so  --Luke Zeller
+             */
+            // System.out.println("Info: Agent not specified. Default " + AgentsPool.getCurrentAgent().getName() + " has been used instead");
             agent = AgentsPool.getCurrentAgent();
         }
         return agent;

@@ -54,6 +54,8 @@ def setup_environment():
                 )
             )
         _env_set_or_append(var, val)
+        print('JAVA_HOME=' + str(os.environ['JAVA_HOME'])
+
 
     # ---- Some hardcoded default behaviors ----
 
@@ -67,9 +69,15 @@ def setup_environment():
         _env_set_or_append('CLASSPATH', get_absolute_path(JAVA_CLASSPATH_REL))
 
 def _env_set_or_append(var, val):
+    # Argument val is assumed not to have terminating semicolon
+    val += ';'
     if var in os.environ:
         if os.environ[var][-1] != ';':
             os.environ[var] += ';'
-        os.environ[var] += val + ';'
+        # Withoug this condition, identical values can be repeatedly appended to the same
+        # environment variable. This can occur, for example, if multiple processes with
+        # distinct memory but shared environment import this module
+        if val not in os.environ[var]:
+            os.environ[var] += val
     else:
-        os.environ[var] = val + ';'
+        os.environ[var] = val

@@ -1,4 +1,11 @@
+import json
 import numpy as np
+
+import config.config_mgr as config_mgr
+
+LEVEL_DATA_REL = 'data/levels'
+LEVEL_DATA_DIR_PATH = config_mgr.get_absolute_path(LEVEL_DATA_REL)
+LEVEL_DATA_DIR = str(LEVEL_DATA_DIR_PATH)
 
 DEFAULT_LEVEL_HEIGHT = 14
 DEFAULT_LEVEL_WIDTH = 28
@@ -35,6 +42,12 @@ int_char_map = {
     12 : 'b'
 }
 
+def load_level_from_json(json_fname):
+    with open(config_mgr.get_absolute_path(
+            'json/' + json_fname, LEVEL_DATA_DIR_PATH), 'r') as json_f:
+        level_json = json.loads(json_f.read())
+    return Level(data=level_json)
+
 class Level(object):
     # Initialize Level object with width / height or data
     # Note: If data array is present, width / height parameters are ignored.
@@ -67,6 +80,9 @@ class Level(object):
             raise ValueError("Horizontal position parameter x is out of bounds.")
         if y < 0 or y >= self.height:
             raise ValueError("Vertical position parameter y is out of bounds.")
+
+    def get_data(self):
+        return self.__tiles.tolist()
 
     def get_tile_char(self, x, y):
         self.__bounds_check(x, y)

@@ -4,6 +4,7 @@ config_mgr.setup_environment()
 
 import jnius
 
+from common import constants
 import common.level
 
 # --- Java class names ---
@@ -47,29 +48,71 @@ def _get_java_level(level):
 
     return _J_LevelParser.createLevelJson(j_level_list)
 
+class _EvaluationInfoProxy(object):
+    def __init__(self, instance = None):
+        self.__instance = instance
+
+    def __getattr__(self, name):
+        try:
+            return getattr(self.__instance, name)
+        except AttributeError:
+            raise AttributeError(
+                "Java EvaluationInfo class does not have attribute '" + name + "'."
+            )
+
+    def has_instance(self):
+        return self.__instance is not None
+        
+    def set_instance(self, instance):
+        self.__instance = instance
+
+    def level_passed(self):
+        return self.lengthOfLevelPassedPhys == constants.LEVEL_LENGTH
+
+        
 class SimulationProxy(object):
+    @staticmethod
+    def from_json_file(json_fname, testing_mode = False):
+        level = common.level.load_level_from_json(json_fname)
+        return SimulationProxy(level, testing_mode)
+        
     # Setting testing_mode = True invokes simulation with human player instead of agent
     def __init__(self, level = None, testing_mode = False):
         # Private instance variable for java EvaluationInfo object returned from simulation 
-        self.__j_eval_info = None
+        self.__eval_info_proxy = _EvaluationInfoProxy()
 
         # Instantiate SimulationHandler (with level if present)
         if level is None:
-            self.j_sim_handler = _J_SimulationHandler()
+            self.__j_sim_handler = _J_SimulationHandler()
         else:
-            self.j_sim_handler = _J_SimulationHandler(_get_java_level(level))
+            self.__j_sim_handler = _J_SimulationHandler(_get_java_level(level))
         # Indicate that agent - not human player - should be used, and set default
         # EvaluationOptions for agent (run simulation at max FPS w/o visualization)
-        self.j_sim_handler.setHumanPlayer(testing_mode, True)
-        self.j_sim_handler.init()
+        self.__j_sim_handler.setHumanPlayer(testing_mode, True)
+        self.__j_sim_handler.init()
 
+    # Forward eval_info requests to EvalutionInfoProxy after checking for simulation completion.
+    # This additional check allows for a custom error message and potential additional
+    # behaviors in the future
+    def __getattr__(self, name):
+        if name == 'eval_info':
+            self.__check_completion()
+            return self.__eval_info_proxy
+        
     def set_level(level):
-        self.j_sim_handler.setLevel(_get_java_level(level))
+        self.__j_sim_handler.setLevel(_get_java_level(level))
 
     def invoke(self):
-        self.__j_eval_info = self.j_sim_handler.invoke()
+        self.__eval_info_proxy.set_instance(self.__j_sim_handler.invoke())
+    
+    def __check_completion(self):
+        if not self.__eval_info_proxy.has_instance:
+            raise RuntimeError( ("Simulation must be run at least once before evaluation "
+                                 "information can be retrieved")
+            )
 
-
+    '''
+    
     def get_distance_passed(self):
         self.__check_completion()
         return self.__j_eval_info.computeDistancePassed()
@@ -94,11 +137,8 @@ class SimulationProxy(object):
         self.__check_completion()
         return self.__j_eval_info.hardJumpActionsPerformed
 
-    def __check_completion(self):
-        if self.__j_eval_info is None:
-            raise RuntimeError( ("Simulation must be run at least once before evaluation "
-                                 "information can be retrieved")
-            )
+    '''
 
+        
 if __name__ == '__main__':
     play_1_1()

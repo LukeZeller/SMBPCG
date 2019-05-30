@@ -17,12 +17,15 @@ def test_gan():
     # For testing purposes
     print(lv)
 
-    
 def test_evolution():
     level = evolve.run()
+    print(level.get_data())
+    while(True):
+        SimulationProxy(level, testing_mode=True).invoke()
 
-    SimulationProxy(level, testing_mode=True).invoke()
 
+def test_json_level(json_fname):
+    SimulationProxy.from_json_file(json_fname, testing_mode=True).invoke()
 if __name__ == '__main__':
-    
+    # test_json_level("test.json")
     test_evolution()
