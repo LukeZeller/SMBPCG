@@ -11,14 +11,13 @@ import ch.idsia.tools.CmdLineOptions;
 import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.EvaluationOptions;
 import ch.idsia.tools.ToolsConfigurator;
-import competition.icegic.robin.AStarAgent;
 
 public class SimulationHandler {
 
     public static void main(String[] args) {
         Level level = LevelParser.createLevelASCII("mario-1-1.txt");
         SimulationHandler handler = new SimulationHandler(level);
-        handler.setHumanPlayer(true, true);
+        handler.setAgent(new HumanKeyboardAgent());
         System.out.println(handler.evaluationOptions.getAgent().getClass());
         handler.init();
         handler.invoke();
@@ -38,26 +37,6 @@ public class SimulationHandler {
 
     public void setAgent(Agent agent) {
         evaluationOptions.setAgent(agent);
-    }
-
-    /* Allows choice between Human Player and A* Agent */
-    public void setHumanPlayer(boolean isHumanPlayer) {
-        setHumanPlayer(isHumanPlayer, false);
-    }
-
-    public void setHumanPlayer(boolean isHumanPlayer, boolean setDefaults) {
-        if (isHumanPlayer && !(evaluationOptions.getAgent() instanceof HumanKeyboardAgent))
-            evaluationOptions.setAgent(new HumanKeyboardAgent());
-
-        if (!isHumanPlayer && !(evaluationOptions.getAgent() instanceof AStarAgent))
-            evaluationOptions.setAgent(new AStarAgent());
-
-        if (setDefaults) {
-            // By default, set simulation to run on max FPS iff player is not human
-            setMaxFPS(!isHumanPlayer);
-            // By default, set simulation to visualize iff player is human
-            setVisualization(isHumanPlayer);
-        }
     }
 
     public Level getLevel() {
