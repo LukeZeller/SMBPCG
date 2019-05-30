@@ -10,15 +10,15 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('file')
 parser.add_argument('directory')
-parser.add_argument('--edim', type=int, default=32,
+parser.add_argument('--edim', type=int, default=256,
                     help='number of embedding dimensions')
-parser.add_argument('--hdim', type=int, default=32,
+parser.add_argument('--hdim', type=int, default=256,
                     help='number of hidden dimensions')
-parser.add_argument('--probp', type=int, default=30,
+parser.add_argument('--probp', type=int, default=60,
                     help='prob a pipe tile is changed')
-parser.add_argument('--probs', type=int, default=30,
+parser.add_argument('--probs', type=int, default=10,
                     help='prob a stair tile is changed')
-parser.add_argument('--tsize', type=int, default=10,
+parser.add_argument('--tsize', type=int, default=100,
                     help='number of training sets create per level')
 opt = parser.parse_args()
 
