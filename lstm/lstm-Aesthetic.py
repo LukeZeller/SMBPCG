@@ -62,25 +62,40 @@ def prepareData():
         # Create Training Data
         for k in range(opt.tsize):
             perturbedLevel = []
-            for i in range(len(levelByColumn)):
-                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
-                    perturbedLevel.append(random.choice(pieces))
-                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
-                    perturbedLevel.append(random.choice(pieces))
+            tempLevel = levelByColumn
+            for i in range(len(tempLevel)):
+                if tempLevel[i] in pipe and random.randint(0, 99) < opt.probp:
+                    perturbedLevel.append(random.choice(piecesFull))
+                    if tempLevel[i] == "<":
+                        j = i
+                        k = i + 14
+                        while tempLevel[j] in pipe:
+                            tempLevel[j] = "-"
+                            tempLevel[k] = "-"
+                            j += 1
+                            k += 1
+                elif tempLevel[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
+                    perturbedLevel.append(random.choice(piecesFull))
                 else:
-                    perturbedLevel.append(levelByColumn[i])
-            training_data.append((perturbedLevel, levelByColumn))
+                    perturbedLevel.append(tempLevel[i])
+            training_data.append((perturbedLevel, tempLevel))
         # Create Testing Data
         for k in range(int(opt.tsize / 10)):
             perturbedLevel = []
-            for i in range(len(levelByColumn)):
-                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
-                    perturbedLevel.append(random.choice(pieces))
-                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
-                    perturbedLevel.append(random.choice(pieces))
+            tempLevel = levelByColumn
+            for i in range(len(tempLevel)):
+                if tempLevel[i] in pipe and random.randint(0, 99) < opt.probp:
+                    perturbedLevel.append(random.choice(piecesFull))
+                    if tempLevel[i] == "<":
+                        tempLevel[i] = "-"
+                        tempLevel[i + 1] = "-"
+                        tempLevel[i + 14] = "-"
+                        tempLevel[i + 15] = "-"
+                elif tempLevel[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
+                    perturbedLevel.append(random.choice(piecesFull))
                 else:
-                    perturbedLevel.append(levelByColumn[i])
-            testing_data.append((perturbedLevel, levelByColumn))
+                    perturbedLevel.append(tempLevel[i])
+            testing_data.append((perturbedLevel, tempLevel))
     return training_data, testing_data
 
 
