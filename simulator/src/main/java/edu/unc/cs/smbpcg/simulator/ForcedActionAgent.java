@@ -25,6 +25,7 @@ public class ForcedActionAgent extends BasicAIAgent implements Agent
         this.cycleMoves = cycleMoves;
     }
 
+    @Override
     public void reset()
     {
         action = new boolean[Environment.numberOfButtons];// Empty action
@@ -45,6 +46,7 @@ public class ForcedActionAgent extends BasicAIAgent implements Agent
         }
     }
 
+    @Override
     public boolean[] getAction(Environment observation)
     {
         if (tickCounter < 0)
@@ -64,16 +66,19 @@ public class ForcedActionAgent extends BasicAIAgent implements Agent
         return kp.getPressed();
     }
 
+    @Override
     public AGENT_TYPE getType()
     {
         return Agent.AGENT_TYPE.AI;
     }
 
+    @Override
     public String getName()
     {
         return name;
     }
 
+    @Override
     public void setName(String Name)
     {
         this.name = Name;
