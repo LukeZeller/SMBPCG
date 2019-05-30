@@ -1,9 +1,8 @@
 package ch.idsia.tools;
 
 import ch.idsia.mario.engine.sprites.Mario;
-import edu.unc.cs.smbpcg.simulator.ActionHelper;
+import edu.unc.cs.smbpcg.simulator.MoveList;
 
-import java.util.ArrayList;
 import java.text.DecimalFormat;
 
 /**
@@ -51,7 +50,7 @@ public class EvaluationInfo
     public boolean marioDiedToFall = false;
     public boolean marioDiedToEnemy = false;
     public boolean marioRanOutOfTime = false;
-    public ArrayList<boolean[]> marioMoves = null;
+    public MoveList marioMoves = null;
 
     public int timeLeft = MagicNumberUndef;
     public String agentName = "undefinedAgentName";
@@ -65,7 +64,6 @@ public class EvaluationInfo
 
     public String toString()
     {
-
         String ret = "\nStatistics. Score:";
         ret += "\n                  Player/Agent type : " + agentType;
         ret += "\n                  Player/Agent name : " + agentName;
@@ -91,7 +89,7 @@ public class EvaluationInfo
         ret += "\n        Mario Ran out of Time : "       + marioRanOutOfTime;
         ret += "\n             Total Actions Perfomed : " + totalActionsPerformed;
         ret += "\n              Total Frames : " + totalFrames;
-        ret += "\n               Moves : \n" + ActionHelper.convertMovesToString(marioMoves);
+        ret += "\n               Moves : \n" + marioMoves;
         return ret;
     }
 

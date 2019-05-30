@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.unc.cs.smbpcg.simulator.ActionHelper;
+import edu.unc.cs.smbpcg.simulator.KeyPress;
+import edu.unc.cs.smbpcg.simulator.MoveList;
 import reader.JsonReader;
 
 
@@ -154,22 +155,15 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
         boolean marioDiedToEnemy = false;
         boolean marioRanOutOfTime = false;
 
-        ArrayList<boolean[]> marioMoves = new ArrayList<>();
-
-// TODO: Manage better place for this:
+        MoveList marioMoves = new MoveList();
         levelScene.mario.resetCoins();
-        LevelScene backup = null;
-
-        while (/*Thread.currentThread() == animator*/ running) {
-            // Display the next frame of animation.
-//                repaint();
+        while (running) {
             scene.tick();
             if (gameViewer != null && gameViewer.getContinuousUpdatesState())
                 gameViewer.tick();
 
             float alpha = 0;
 
-//            og.setColor(Color.RED);
             if (GlobalOptions.VisualizationOn) {
                 og.fillRect(0, 0, 320, 240);
                 scene.render(og, alpha);
@@ -190,16 +184,15 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
             if (!marioDiedToFall && levelScene.mario.getStatus() == 0 && levelScene.getTimeLeft() > 0)  {
                 marioDiedToEnemy = true;
             }
-            // System.out.println("Current x and y: " + current_mario_x + " " + current_mario_y);
 
-            boolean [] action = agent.getAction(this/*DummyEnvironment*/);
-            if (action != null)
+            KeyPress kp = new KeyPress(agent.getAction(this/*DummyEnvironment*/));
+            if (kp.isValid())
             {
-                marioMoves.add(action.clone());
-                for (int i = 0; i < Environment.numberOfButtons; ++i){
-                    if (action[i])
+                marioMoves.addKeyPress(kp);
+                for (int button = 0; button < Environment.numberOfButtons; ++button){
+                    if (kp.isPressed(button))
                     {
-                        if(i == Mario.KEY_JUMP) {
+                        if(button == Mario.KEY_JUMP) {
                             /*
                              * If gapBetweenJumps is <= 1, that means the jump key was just held or pressed for the first time
                              * We categorize the difficulty of jumps based on # of frames between the end of one jump action
@@ -250,7 +243,7 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
                         trivialJumpActionsPerformed + " trivial jumps");
             }
 
-            ((LevelScene) scene).mario.keys = action;
+            ((LevelScene) scene).mario.keys = kp.getPressed();
             ((LevelScene) scene).mario.cheatKeys = cheatAgent.getAction(null);
 
             if (GlobalOptions.VisualizationOn) {
@@ -262,10 +255,10 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
                 ((LevelScene) scene).drawStringDropShadow(og, msg, 0, 8, 6);
 
                 msg = "";
-                if (action != null)
+                if (kp.isValid())
                 {
                     for (int i = 0; i < Environment.numberOfButtons; ++i)
-                        msg += (action[i]) ? scene.keysStr[i] : "      ";
+                        msg += (kp.isPressed(i)) ? scene.keysStr[i] : "      ";
                 }
                 else
                     msg = "NULL";
@@ -310,7 +303,7 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
             frame++;
         }
         // Remove redundant blank actions at the end of Mario's moves
-        ActionHelper.rstripBlankActions(marioMoves, new boolean[Environment.numberOfButtons]);
+        marioMoves.rstrip(new KeyPress());
 
         marioRanOutOfTime = levelScene.getTimeLeft() <= 0;
 //=========
