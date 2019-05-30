@@ -69,7 +69,10 @@ def setup_environment():
                  "configuration information."
                 )
             )
-        _env_set_or_append(var, val)
+        # This can be generalized, but for now enforcing the following behavior is sufficient:
+        # JAVA_HOME does not allow appending (instead overwriting) but the other two path variables
+        # (PATH and CLASSPATH) do.
+        _env_set_or_append(var, val, allow_append=(var != 'JAVA_HOME'))
         # print('JAVA_HOME=' + str(os.environ['JAVA_HOME']))
 
 
@@ -84,8 +87,8 @@ def setup_environment():
     if 'CLASSPATH' not in conf_data['environment']:
         _env_set_or_append('CLASSPATH', get_absolute_path(JAVA_CLASSPATH_REL))
 
-def _env_set_or_append(var, val, allow_append=False):
-    # Argument val is assumed not to have terminating semicolon
+def _env_set_or_append(var, val, allow_append=True):
+    # Argument val is assumed not to have terminating delimiter
     val += SYS_ENV_DELIMITER
     if var in os.environ and allow_append:
         if os.environ[var][-1] != SYS_ENV_DELIMITER:
