@@ -10,34 +10,6 @@ def number_of_feasible_shifts(info, level):
     return 1
 
 def _get_jumps(moves):
-    """ ArrayList<Integer> jumpStarts = new ArrayList<>();
-        ArrayList<Integer> jumpEnds = new ArrayList<>();
-
-        boolean jumpAlreadyPressed = false;
-        for (int frame = 0; frame < moves.size(); frame++) {
-            boolean jumpCurrentlyPressed = moves.get(frame)[Mario.KEY_JUMP];
-            if (!jumpAlreadyPressed && jumpCurrentlyPressed) {
-                jumpStarts.add(frame);
-            }
-            if (jumpAlreadyPressed && !jumpCurrentlyPressed) {
-                jumpEnds.add(frame);
-            }
-            jumpAlreadyPressed = jumpCurrentlyPressed;
-        }
-        if (jumpStarts.size() > 0 && jumpEnds.size() < jumpStarts.size())
-        {
-            /*
-             * If there is no release of the jump key before the level is complete, add a sentinel jump
-             * release 1 frame after the last jump was started
-             */
-            int lastJumpStart = jumpStarts.get(jumpStarts.size() - 1);
-            jumpEnds.add(lastJumpStart + 1);
-        }
-        if (jumpStarts.size() != jumpEnds.size()) {
-            throw new RuntimeException("Mismatch between number of jump key presses and releases");
-        }
-
-        return new Pair<>(jumpStarts, jumpEnds);"""
     jump_starts = []
     jump_ends = []
     jump_previously_pressed = False
