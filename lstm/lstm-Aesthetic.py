@@ -130,7 +130,6 @@ def prepare_data():
 
 
 training_data, testing_data = prepare_data()
-print(training_data[0][0])
 for i, data in enumerate(training_data):
     swapi = random.randrange(i, len(training_data))
     training_data[i], training_data[swapi] = training_data[swapi], data
