@@ -104,8 +104,12 @@ class SimulationProxy(object):
             self.__check_completion()
             return self.__eval_info_proxy
         
-    def set_level(level):
+    def set_level(self, level):
         self.__j_sim_handler.setLevel(_get_java_level(level))
+        
+    def set_visualization(self, is_visualization):
+        self.__j_sim_handler.setVisualization(is_visualization)
+        self.__j_sim_handler.setMaxFPS(not is_visualization)
 
     def invoke(self):
         self.__eval_info_proxy.set_instance(self.__j_sim_handler.invoke())
