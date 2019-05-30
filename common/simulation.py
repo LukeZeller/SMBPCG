@@ -48,6 +48,19 @@ def _get_java_level(level):
 
     return _J_LevelParser.createLevelJson(j_level_list)
 
+def _instantiated_simulation_handler(level, human_tested, visualize):
+        if level is None:
+            j_sim_handler = _J_SimulationHandler()
+        else:
+            j_sim_handler = _J_SimulationHandler(_get_java_level(level))
+        j_sim_handler.setHumanPlayer(human_tested,  True)
+        if visualize is None:
+            visualize = True if human_tested else False
+        j_sim_handler.setVisualization(visualize)
+        j_sim_handler.setMaxFPS(not visualize)
+        j_sim_handler.init()
+        return j_sim_handler
+
 class _EvaluationInfoProxy(object):
     def __init__(self, instance = None):
         self.__instance = instance
@@ -77,24 +90,21 @@ class _EvaluationInfoProxy(object):
         
 class SimulationProxy(object):
     @staticmethod
-    def from_json_file(json_fname, testing_mode = False):
+    def from_json_file(json_fname, human_tested = False):
         level = common.level.load_level_from_json(json_fname)
-        return SimulationProxy(level, testing_mode)
+        return SimulationProxy(level, human_tested)
         
-    # Setting testing_mode = True invokes simulation with human player instead of agent
-    def __init__(self, level = None, testing_mode = False):
+    # Setting human_tested = True invokes simulation with human player instead of agent
+    def __init__(self, level = None, human_tested = False, visualize = None):
+        self.__level = level
+        self.__human_tested = human_tested
+        self.__visualize = visualize
         # Private instance variable for java EvaluationInfo object returned from simulation 
         self.__eval_info_proxy = _EvaluationInfoProxy()
-
-        # Instantiate SimulationHandler (with level if present)
-        if level is None:
-            self.__j_sim_handler = _J_SimulationHandler()
-        else:
-            self.__j_sim_handler = _J_SimulationHandler(_get_java_level(level))
-        # Indicate that agent - not human player - should be used, and set default
-        # EvaluationOptions for agent (run simulation at max FPS w/o visualization)
-        self.__j_sim_handler.setHumanPlayer(testing_mode, True)
-        self.__j_sim_handler.init()
+        
+        self.__j_sim_handler = _instantiated_simulation_handler(self.__level, 
+                                                                self.__human_tested,
+                                                                self.__visualize)
 
     # Forward eval_info requests to EvalutionInfoProxy after checking for simulation completion.
     # This additional check allows for a custom error message and potential additional
@@ -105,11 +115,13 @@ class SimulationProxy(object):
             return self.__eval_info_proxy
         
     def set_level(self, level):
+        self.__level = level
         self.__j_sim_handler.setLevel(_get_java_level(level))
         
-    def set_visualization(self, is_visualization):
-        self.__j_sim_handler.setVisualization(is_visualization)
-        self.__j_sim_handler.setMaxFPS(not is_visualization)
+    def set_visualize(self, visualize):
+        self.__j_sim_handler = _instantiated_simulation_handler(self.__level,
+                                                                 self.__human_tested,
+                                                                 visualize)
 
     def invoke(self):
         self.__eval_info_proxy.set_instance(self.__j_sim_handler.invoke())

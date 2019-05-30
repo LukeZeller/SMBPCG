@@ -12,8 +12,8 @@ def test_gan():
     latent_vector = np.random.uniform(-1, 1, 32)
     level = generate.apply_generator(latent_vector)
 
-    sim_proxy = SimulationProxy(level, testing_mode=False)
-    sim_proxy.set_visualization(True)
+    sim_proxy = SimulationProxy(level, human_tested=False, visualize=True)
+    sim_proxy.set_visualize(True)
     sim_proxy.invoke()
     
     fitness = evolve._fitness_function(level)
@@ -26,15 +26,15 @@ def test_evolution():
     level = evolve.run()
     print(level.get_data())
     while(True):
-        SimulationProxy(level, testing_mode=True).invoke()
+        SimulationProxy(level, human_tested=True).invoke()
 
 
 def test_json_level(json_fname):
-    SimulationProxy.from_json_file(json_fname, testing_mode=True).invoke()
+    SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
     
 if __name__ == '__main__':
     # test_json_level("test.json")
     latent_vector, info, fitness = test_gan()
     print(latent_vector)
-    print(info)
+    print(info.level_passed())
     print("Fitness is: ", fitness)
