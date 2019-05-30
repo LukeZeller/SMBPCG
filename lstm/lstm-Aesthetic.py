@@ -44,6 +44,29 @@ piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
                "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
 
+# probp_d == probability of pipe tile being deleted
+# probs_d == probability of stair tile (== ground tile
+#            above ground) being deleted.
+# probs_c == probability of tile near stair tile being 'created'
+#            (i.e. transformed into a stair tile)
+def perturb_level(level_by_col, probp_d, probs_d, probs_c):
+    perturbed_level = []
+    level_cpy = level_by_column[:]
+    for i in range(len(temp_level)):
+        if level_cpy[i] in pipe and random.randint(0, 99) < probp_d:
+            perturbed_level.append(random.choice(piecesFull))
+            if level_cpy[i] == "<":
+                p_itr = i
+                while tempLevel[p_itr] in pipe:
+                    tempLevel[p_itr] = "-"
+                    tempLevel[p_itr + 14] = "-"
+                    p_itr += 1
+            elif level_cpy[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs_d:
+            preturbed_level.append(random.choice(piecesFull))
+            else:
+                perturbed_level.append(level_cpy[i])
+    return (level_cpy, perturbed_level)
+
 
 def prepareData():
     training_data = []
@@ -61,44 +84,10 @@ def prepareData():
                 levelByColumn.append(levelByRow[i][j])
         # Create Training Data
         for k in range(opt.tsize):
-            perturbedLevel = []
-            tempLevel = levelByColumn
-            for i in range(len(tempLevel)):
-                if tempLevel[i] in pipe and random.randint(0, 99) < opt.probp:
-                    perturbedLevel.append(random.choice(piecesFull))
-                    if tempLevel[i] == "<":
-                        p = i
-                        q = i + 14
-                        while tempLevel[p] in pipe:
-                            tempLevel[p] = "-"
-                            tempLevel[q] = "-"
-                            p += 1
-                            q += 1
-                elif tempLevel[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
-                    perturbedLevel.append(random.choice(piecesFull))
-                else:
-                    perturbedLevel.append(tempLevel[i])
-            training_data.append((perturbedLevel, tempLevel))
-        # Create Testing Data
+            # TODO: Add option for distinct staircase creation probability
+            training_data.append(perturb_level(level, opt.probp, opt.probs, opt.probs))
         for k in range(int(opt.tsize / 10)):
-            perturbedLevel = []
-            tempLevel = levelByColumn
-            for i in range(len(tempLevel)):
-                if tempLevel[i] in pipe and random.randint(0, 99) < opt.probp:
-                    perturbedLevel.append(random.choice(piecesFull))
-                    if tempLevel[i] == "<":
-                        p = i
-                        q = i + 14
-                        while tempLevel[p] in pipe:
-                            tempLevel[p] = "-"
-                            tempLevel[q] = "-"
-                            p += 1
-                            q += 1
-                elif tempLevel[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
-                    perturbedLevel.append(random.choice(piecesFull))
-                else:
-                    perturbedLevel.append(tempLevel[i])
-            testing_data.append((perturbedLevel, tempLevel))
+            testing_data.append(perturb_level(level, opt.probp, opt.probs, opt.probs))
     return training_data, testing_data
 
 
