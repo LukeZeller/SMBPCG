@@ -22,8 +22,10 @@ parser.add_argument('--hdim', type=int, default=32,
                     help='number of hidden dimensions')
 parser.add_argument('--tsize', type=int, default=100,
                     help='number of training sets create per level')
-parser.add_argument('--prob', type=int, default=30,
+parser.add_argument('--probp', type=int, default=30,
                     help='prob a pipe tile is changed')
+parser.add_argument('--probs', type=int, default=30,
+                    help='prob a stair tile is changed')
 opt = parser.parse_args()
 
 assert torch.cuda.is_available()
@@ -77,21 +79,24 @@ def prepareData():
         for k in range(opt.tsize):
             proturbedLevel = []
             for i in range(len(levelByColumn)):
-                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
                     proturbedLevel.append(random.choice(pieces))
-                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.prob:
+                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
                     proturbedLevel.append(random.choice(pieces))
                 else:
                     proturbedLevel.append(levelByColumn[i])
             training_data.append((proturbedLevel, levelByColumn))
         # Create Testing Data
-        for k in range(10):
+        for k in range(int(opt.tsize / 10)):
             proturbedLevel = []
             for i in range(len(levelByColumn)):
-                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
+                    proturbedLevel.append(random.choice(pieces))
+                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
                     proturbedLevel.append(random.choice(pieces))
                 else:
                     proturbedLevel.append(levelByColumn[i])
+            print(proturbedLevel)
             testing_data.append((proturbedLevel, levelByColumn))
     return training_data, testing_data
 
