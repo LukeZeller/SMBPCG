@@ -75,10 +75,47 @@ model.load_state_dict(torch.load("./" + opt.file))
 model.eval()
 
 
-def perturb_level(level_by_col, probp_d, probs_d, probs_c):
+# probs = probability of a stair rock forming due to an adjacent stair block.
+# probg = probability of a stair rock forming due to an adjacent ground block.
+# Note: Here probability is in [0, 1] not w.r.t 100 (unlike below)
+def _add_some_rocks(level_by_col, probs, probg):
+    sz = len(level_by_col)
+    for i in range(sz):
+        # Ignore the ground level
+        if i % 14 == 13 or level_by_col[i] == 'X':
+            continue
+        # n_adj_s = # of direct neighbors that are stair blocks
+        n_adj_s = 0
+        # offset of all neighbors excluding neighbor below, which
+        # is handled separately to account for ground tiles
+        for offset in [-14, -1, 14]:
+            j = i + offset
+            if j >= 0 and j < sz and level_by_col[j] == 'X':
+                n_adj_s += 1
+        # n_adj_g = # of direct neighbors that are ground blocks and is always in {0, 1}
+        # Note - overflow here should be impossible as the length of level_by_cols
+        #        is a multiple of the height ( = 14)
+        n_adj_g = (i % 14 == 12 and level_by_col[i + 1] == 'X')
+        # Why do I model formation this way? Absolutely no reason.
+        p_form = 1 - (1 - probs) ** n_adj_s * (1 - probg) ** n_adj_g
+        if random.uniform(0, 1) < p_form:
+            level_by_col[i] = 'X'
+
+# probp_d == probability of pipe tile being deleted
+# probs_d == probability of stair tile (== ground tile
+#            above ground) being deleted.
+# probs_c == probability of tile near stair tile being 'created'
+#            (i.e. transformed into a stair tile)
+
+
+def _perturb_level(level_by_col, probp_d, probs_d, probs_c):
     perturbed_level = []
     level_cpy = level_by_col[:]
     for i in range(len(level_cpy)):
+        # Initial perturbations: Delete pipe and stair tiles.
+        # If first pipe tile that will be encountered by the LSTM
+        # is deleted, the rest of the pipe must be as well for otherwise
+        # the poor lil' network stands no chance
         if level_cpy[i] in pipe and random.randint(0, 99) < probp_d:
             perturbed_level.append(random.choice(piecesFull))
             if level_cpy[i] == "<":
@@ -91,33 +128,39 @@ def perturb_level(level_by_col, probp_d, probs_d, probs_c):
                 perturbed_level.append(random.choice(piecesFull))
         else:
             perturbed_level.append(level_cpy[i])
+
+    probs_c /= 100
+    _add_some_rocks(perturbed_level, probs_c, probs_c / 2)
+    _add_some_rocks(perturbed_level, probs_c, probs_c / 2)
+
     return (perturbed_level, level_cpy)
 
 
-def prepareData():
+def prepare_data():
     training_data = []
     testing_data = []
     for filename in os.listdir(opt.directory):
-        levelByColumn = []
-        with open(opt.directory + "/" + filename) as textFile:
-            levelByRow = np.array([list(line) for line in textFile])
-        levelByRow = levelByRow[:, :-1]
+        level_by_cols = []
+        with open(opt.directory + "/" + filename) as text_f:
+            level_by_rows = np.array([list(line) for line in text_f])
+        level_by_rows = level_by_rows[:, :-1]
         # We read in a text file version the level into a 2-D array
         # However, the LSTM will read the level column by column
         # So, it is necessary to swap rows and columns and then flatten the level
-        for j in range(len(levelByRow[0])):
-            for i in range(len(levelByRow)):
-                levelByColumn.append(levelByRow[i][j])
+        for j in range(len(level_by_rows[0])):
+            for i in range(len(level_by_rows)):
+                level_by_cols.append(level_by_rows[i][j])
         # Create Training Data
         for k in range(opt.tsize):
             # TODO: Add option for distinct staircase creation probability
-            training_data.append(perturb_level(levelByColumn, opt.probp, opt.probs, opt.probs))
-        for k in range(int(opt.tsize / 10)):
-            testing_data.append(perturb_level(levelByColumn, opt.probp, opt.probs, opt.probs))
+            training_data.append(_perturb_level(level_by_cols, opt.probp, opt.probs, opt.probs))
+        for k in range(int(opt.tsize / 10) + 1):
+            testing_data.append(_perturb_level(level_by_cols, opt.probp, opt.probs, opt.probs))
     return training_data, testing_data
 
 
-training_data, testing_data = prepareData()
+training_data, testing_data = prepare_data()
+
 
 with torch.no_grad():
     correct = 0

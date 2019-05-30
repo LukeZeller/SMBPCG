@@ -124,7 +124,7 @@ def prepare_data():
         for k in range(opt.tsize):
             # TODO: Add option for distinct staircase creation probability
             training_data.append(_perturb_level(level_by_cols, opt.probp, opt.probs, opt.probs))
-        for k in range(int(opt.tsize / 10)):
+        for k in range(int(opt.tsize / 10) + 1):
             testing_data.append(_perturb_level(level_by_cols, opt.probp, opt.probs, opt.probs))
     return training_data, testing_data
 
