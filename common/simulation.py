@@ -101,7 +101,7 @@ class SimulationProxy(object):
         self.__visualize = visualize
         # Private instance variable for java EvaluationInfo object returned from simulation 
         self.__eval_info_proxy = _EvaluationInfoProxy()
-        
+        # Instantiate SimulationHandler with given parameters
         self.__j_sim_handler = _instantiated_simulation_handler(self.__level, 
                                                                 self.__human_tested,
                                                                 self.__visualize)
