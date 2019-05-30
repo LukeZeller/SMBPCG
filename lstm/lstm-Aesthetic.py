@@ -134,7 +134,7 @@ model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(tileMapping),
 model.cuda()
 if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
-    model = nn.DataParallel(model)
+    model = nn.DistributedDataParallel(model)
 
 loss_function = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1)
