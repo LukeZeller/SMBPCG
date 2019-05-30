@@ -67,13 +67,13 @@ def prepareData():
                 if tempLevel[i] in pipe and random.randint(0, 99) < opt.probp:
                     perturbedLevel.append(random.choice(piecesFull))
                     if tempLevel[i] == "<":
-                        j = i
-                        k = i + 14
-                        while tempLevel[j] in pipe:
-                            tempLevel[j] = "-"
-                            tempLevel[k] = "-"
-                            j += 1
-                            k += 1
+                        p = i
+                        q = i + 14
+                        while tempLevel[p] in pipe:
+                            tempLevel[p] = "-"
+                            tempLevel[q] = "-"
+                            p += 1
+                            q += 1
                 elif tempLevel[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
                     perturbedLevel.append(random.choice(piecesFull))
                 else:
@@ -87,10 +87,13 @@ def prepareData():
                 if tempLevel[i] in pipe and random.randint(0, 99) < opt.probp:
                     perturbedLevel.append(random.choice(piecesFull))
                     if tempLevel[i] == "<":
-                        tempLevel[i] = "-"
-                        tempLevel[i + 1] = "-"
-                        tempLevel[i + 14] = "-"
-                        tempLevel[i + 15] = "-"
+                        p = i
+                        q = i + 14
+                        while tempLevel[p] in pipe:
+                            tempLevel[p] = "-"
+                            tempLevel[q] = "-"
+                            p += 1
+                            q += 1
                 elif tempLevel[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
                     perturbedLevel.append(random.choice(piecesFull))
                 else:
