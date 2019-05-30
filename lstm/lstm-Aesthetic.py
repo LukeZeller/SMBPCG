@@ -31,6 +31,7 @@ opt = parser.parse_args()
 assert torch.cuda.is_available()
 torch.cuda.set_device(0)
 
+
 def prepare_sequence(seq, to_ix):
     idxs = [to_ix[w] for w in seq]
     res = torch.tensor(idxs, dtype=torch.long).cuda()
@@ -42,7 +43,6 @@ pieces = ["X", "-", "<", ">", "[", "]"]
 piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
                "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
-
 
 
 # probs = probability of a stair rock forming due to an adjacent stair block.
@@ -70,12 +70,14 @@ def _add_some_rocks(level_by_col, probs, probg):
         p_form = 1 - (1 - probs) ** n_adj_s * (1 - probg) ** n_adj_g
         if random.uniform(0, 1) < p_form:
             level_by_col[i] = 'X'
-            
+
 # probp_d == probability of pipe tile being deleted
 # probs_d == probability of stair tile (== ground tile
 #            above ground) being deleted.
 # probs_c == probability of tile near stair tile being 'created'
 #            (i.e. transformed into a stair tile)
+
+
 def _perturb_level(level_by_col, probp_d, probs_d, probs_c):
     perturbed_level = []
     level_cpy = level_by_col[:]
@@ -98,8 +100,8 @@ def _perturb_level(level_by_col, probp_d, probs_d, probs_c):
             perturbed_level.append(level_cpy[i])
 
     probs_c /= 100
-    perturbed_level._add_some_rocks(probs_c, probs_c / 2)
-    perturbed_level._add_some_rocks(probs_c, probs_c / 2)
+    _add_some_rocks(perturbed_level, probs_c, probs_c / 2)
+    _add_some_rocks(perturbed_level, probs_c, probs_c / 2)
 
     return (perturbed_level, level_cpy)
 
@@ -128,6 +130,7 @@ def prepare_data():
 
 
 training_data, testing_data = prepare_data()
+print(training_data[0][0])
 for i, data in enumerate(training_data):
     swapi = random.randrange(i, len(training_data))
     training_data[i], training_data[swapi] = training_data[swapi], data
