@@ -9,13 +9,15 @@ from gan import generate
 def test_gan():
     generate.load_generator()
 
-    lv = np.random.uniform(-1, 1, 32)
-    level = generate.apply_generator(lv)
+    latent_vector = np.random.uniform(-1, 1, 32)
+    level = generate.apply_generator(latent_vector)
 
-    SimulationProxy(level, testing_mode=True).invoke()
+    sim_proxy = SimulationProxy(level, testing_mode=False)
+    sim_proxy.invoke()
 
     # For testing purposes
-    print(lv)
+    return latent_vector, sim_proxy.eval_info
+
 
 def test_evolution():
     level = evolve.run()
@@ -26,6 +28,9 @@ def test_evolution():
 
 def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, testing_mode=True).invoke()
+    
 if __name__ == '__main__':
     # test_json_level("test.json")
-    test_evolution()
+    latent_vector, info = test_gan()
+    print(latent_vector)
+    print(info)

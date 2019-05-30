@@ -1,7 +1,9 @@
 package ch.idsia.tools;
 
 import ch.idsia.mario.engine.sprites.Mario;
+import edu.unc.cs.smbpcg.simulator.ActionHelper;
 
+import java.util.ArrayList;
 import java.text.DecimalFormat;
 
 /**
@@ -17,28 +19,16 @@ public class EvaluationInfo
     /* Constants related to mario's status */
     public static final float lowestValidPosition = 225.0f;
     /*
-    * Frame gap thresholds used to categorize difficulty of a jump --
-    * jumps done in a tighter time frame are considered to be harder
-    */
+     * Frame gap thresholds used to categorize difficulty of a jump --
+     * jumps done in a tighter time frame are considered to be harder
+     */
     public static final int hardJumpThreshold = 10; /* If a jump is done <= 5 frames after the previous jump is completed,
-                                                      * it qualifies as a hard jump */
+     * it qualifies as a hard jump */
     public static final int mediumJumpThreshold = 20; /* If a jump is done <= 20 frames after the previous jump is completed,
-                                                        * it qualifies as a medium jump */
+     * it qualifies as a medium jump */
     public static final int easyJumpThreshold = 30; /* If a jump is done <= 30 frames after the previous jump is completed,
-                                                      * it qualifies as a medium jump */
+     * it qualifies as a medium jump */
     public static final int trivialJumpThreshold = 20000; /* All remaining jumps are effectively classified as trivial */
-    /* The following weights are used to determine the difficulty of a level -- harder jumps contribute more to the difficulty */
-    public static final int hardJumpWeight = 10;
-    public static final int mediumJumpWeight = 5;
-    public static final int easyJumpWeight = 3;
-    public static final int trivialJumpWeight = 1;
-
-    public static final int badPipeTileWeight = -2;
-    public static final int goodPipeTileWeight = 2;
-    public static final int gapWeight = 2;
-
-    public static final int enemyWeight = 2;
-    public static final int repeatWeight = 2;
 
     /* Statistics on player actions during the level */
     public int levelType = MagicNumberUndef;
@@ -51,21 +41,18 @@ public class EvaluationInfo
     public int timeSpentOnLevel = MagicNumberUndef;
     public int totalTimeGiven = MagicNumberUndef;
     public int numberOfGainedCoins = MagicNumberUndef;
-//    public int totalNumberOfCoins = MagicNumberUndef;
-    public int totalActionsPerfomed = MagicNumberUndef;
+    public int totalActionsPerformed = MagicNumberUndef;
     public int jumpActionsPerformed = MagicNumberUndef;
     public int hardJumpActionsPerformed = MagicNumberUndef;
     public int mediumJumpActionsPerformed = MagicNumberUndef;
     public int easyJumpActionsPerformed = MagicNumberUndef;
     public int trivialJumpActionsPerformed = MagicNumberUndef;
-    public int totalFramesPerfomed = MagicNumberUndef;
+    public int totalFrames = MagicNumberUndef;
     public boolean marioDiedToFall = false;
     public boolean marioDiedToEnemy = false;
     public boolean marioRanOutOfTime = false;
-    // Number Of collisions with creatures
-    // if large
-    // if fire
-    public String Memo = "";
+    public ArrayList<boolean[]> marioMoves = null;
+
     public int timeLeft = MagicNumberUndef;
     public String agentName = "undefinedAgentName";
     public String agentType = "undefinedAgentType";
@@ -73,47 +60,6 @@ public class EvaluationInfo
     public int levelRandSeed = MagicNumberUndef;
     public int marioMode = MagicNumberUndef;
     public int killsTotal = MagicNumberUndef;
-
-    public double computeBasicFitness()
-    {
-        // neglect totalActionsPerfomed;
-        // neglect totalLengthOfLevelCells;
-        // neglect totalNumberOfCoins;
-        return lengthOfLevelPassedPhys - timeSpentOnLevel + numberOfGainedCoins + marioStatus*5000;
-    }
-
-    public double computeDistancePassed()
-    {
-        return lengthOfLevelPassedPhys;
-    }
-
-    public int computeKillsTotal()
-    {
-        return this.killsTotal;
-    }
-    
-    public double computeJumpFraction(){
-        return (double)this.jumpActionsPerformed/this.totalActionsPerfomed;
-    }
-
-    //TODO: possible fitnesses adjustments: penalize for collisions with creatures and especially for  suicide. It's a sin.
-
-    public double [] toDouble()
-    {
-        
-        return new double[]
-                {
-                        marioStatus,
-                        lengthOfLevelPassedPhys,
-                        totalLengthOfLevelCells,
-                        timeSpentOnLevel,
-                        numberOfGainedCoins,
-//                        totalNumberOfCoins,
-                        totalActionsPerfomed,
-                        totalFramesPerfomed,
-                        computeBasicFitness()
-                };
-    }
 
     private DecimalFormat df = new DecimalFormat("0.00");
 
@@ -134,7 +80,6 @@ public class EvaluationInfo
         ret += "\n             Time Spent(Fractioned) : " + timeSpentOnLevel + " ( " + df.format((double)timeSpentOnLevel/totalTimeGiven*100) + "% )";
         ret += "\n              Time Left(Fractioned) : " + timeLeft + " ( " + df.format((double)timeLeft/totalTimeGiven*100) + "% )";
         ret += "\n                   Total time given : " + totalTimeGiven;
-//        ret += "\nCoins Gained: " + numberOfGainedCoins/totalNumberOfCoins*100 + "%. (" + numberOfGainedCoins + " of " + totalNumberOfCoins + ")";
         ret += "\n                       Coins Gained : " + numberOfGainedCoins;
         ret += "\n             Jump Actions Performed : " + jumpActionsPerformed;
         ret += "\n     Trivial Jump Actions Performed : " + trivialJumpActionsPerformed;
@@ -144,10 +89,27 @@ public class EvaluationInfo
         ret += "\n        Mario Died to Fall : "          + marioDiedToFall;
         ret += "\n        Mario Died to Enemy: "          + marioDiedToEnemy;
         ret += "\n        Mario Ran out of Time : "       + marioRanOutOfTime;
-        ret += "\n             Total Actions Perfomed : " + totalActionsPerfomed;
-        ret += "\n              Total Frames Perfomed : " + totalFramesPerfomed;
-        ret += "\n               Simple Basic Fitness : " + df.format(computeBasicFitness());
-        ret += "\nMemo: " + ((Memo.equals("")) ? "Empty" : Memo);
+        ret += "\n             Total Actions Perfomed : " + totalActionsPerformed;
+        ret += "\n              Total Frames : " + totalFrames;
+        ret += "\n               Moves : \n" + ActionHelper.convertMovesToString(marioMoves);
         return ret;
+    }
+
+    public double computeBasicFitness()
+    {
+        // neglect totalActionsPerfomed;
+        // neglect totalLengthOfLevelCells;
+        // neglect totalNumberOfCoins;
+        return lengthOfLevelPassedPhys - timeSpentOnLevel + numberOfGainedCoins + marioStatus*5000;
+    }
+
+    public double computeDistancePassed()
+    {
+        return lengthOfLevelPassedPhys;
+    }
+
+    public int computeKillsTotal()
+    {
+        return this.killsTotal;
     }
 }
