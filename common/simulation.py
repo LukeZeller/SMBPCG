@@ -5,6 +5,7 @@ config_mgr.setup_environment()
 import jnius
 
 from common import constants
+import common.agents
 import common.level
 
 # --- Java class names ---
@@ -48,18 +49,18 @@ def _get_java_level(level):
 
     return _J_LevelParser.createLevelJson(j_level_list)
 
-def _instantiated_simulation_handler(level, human_tested, visualize):
-        if level is None:
-            j_sim_handler = _J_SimulationHandler()
-        else:
-            j_sim_handler = _J_SimulationHandler(_get_java_level(level))
-        j_sim_handler.setHumanPlayer(human_tested,  True)
-        if visualize is None:
-            visualize = True if human_tested else False
-        j_sim_handler.setVisualization(visualize)
-        j_sim_handler.setMaxFPS(not visualize)
-        j_sim_handler.init()
-        return j_sim_handler
+def _instantiated_simulation_handler(level, agent, visualize):
+    if level is None:
+        j_sim_handler = _J_SimulationHandler()
+    else:
+        j_sim_handler = _J_SimulationHandler(_get_java_level(level))
+        
+    j_sim_handler.setAgent(agent)
+    j_sim_handler.setVisualization(visualize)
+    j_sim_handler.setMaxFPS(not visualize)
+    
+    j_sim_handler.init()
+    return j_sim_handler
 
 class _EvaluationInfoProxy(object):
     def __init__(self, instance = None):
@@ -94,17 +95,16 @@ class SimulationProxy(object):
         level = common.level.load_level_from_json(json_fname)
         return SimulationProxy(level, human_tested)
         
-    # Setting human_tested = True invokes simulation with human player instead of agent
-    def __init__(self, level = None, human_tested = False, visualize = None):
+    def __init__(self, level = None, agent = None, visualize = None):
         self.__level = level
-        self.__human_tested = human_tested
-        self.__visualize = visualize
+        self.__agent = agent if agent is not None else common.agents.create_astar_agent()
+        self.__visualize = visualize if visualize is not None else \
+                            True if common.agents.is_human(agent) else False
+        
         # Private instance variable for java EvaluationInfo object returned from simulation 
         self.__eval_info_proxy = _EvaluationInfoProxy()
         # Instantiate SimulationHandler with given parameters
-        self.__j_sim_handler = _instantiated_simulation_handler(self.__level, 
-                                                                self.__human_tested,
-                                                                self.__visualize)
+        self.__j_sim_handler = _instantiated_simulation_handler(self.__level, self.__agent, self.__visualize)
 
     # Forward eval_info requests to EvalutionInfoProxy after checking for simulation completion.
     # This additional check allows for a custom error message and potential additional
@@ -120,8 +120,8 @@ class SimulationProxy(object):
         
     def set_visualize(self, visualize):
         self.__j_sim_handler = _instantiated_simulation_handler(self.__level,
-                                                                 self.__human_tested,
-                                                                 visualize)
+                                                                self.__agent,
+                                                                visualize)
 
     def invoke(self):
         self.__eval_info_proxy.set_instance(self.__j_sim_handler.invoke())

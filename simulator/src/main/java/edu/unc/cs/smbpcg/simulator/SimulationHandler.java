@@ -1,5 +1,6 @@
 package edu.unc.cs.smbpcg.simulator;
 
+import ch.idsia.ai.agents.Agent;
 import ch.idsia.ai.agents.human.HumanKeyboardAgent;
 import ch.idsia.mario.engine.GlobalOptions;
 import ch.idsia.mario.engine.level.Level;
@@ -33,6 +34,10 @@ public class SimulationHandler {
     public SimulationHandler(Level level) {
         this();
         setLevel(level);
+    }
+
+    public void setAgent(Agent agent) {
+        evaluationOptions.setAgent(agent);
     }
 
     /* Allows choice between Human Player and A* Agent */
