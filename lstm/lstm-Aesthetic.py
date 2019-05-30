@@ -37,23 +37,6 @@ def prepare_sequence(seq, to_ix):
     res = torch.tensor(idxs, dtype=torch.long).cuda()
     return res
 
-
-# numArg = len(sys.argv)
-# levelByRow = [[] for i in range(numArg)]
-# for i in range(numArg):
-
-with open("../simulator/mario-1-1.txt") as textFile:
-    levelByRow = [list(line) for line in textFile]
-# We read in a text file version of SMB1 level 1-1 into a 2-D array
-# However, the LSTM will read the level column by column
-# So, it is necessary to swap rows and columns
-levelByColumn = ""
-for j in range(len(levelByRow[0])):
-    for i in range(len(levelByRow)):
-        levelByColumn += str(levelByRow[i][j]) + " "
-levelByColumnArray = levelByColumn.split()
-training_data = [(levelByColumnArray, levelByColumnArray)]
-
 pipe = ["<", ">", "[", "]"]
 pieces = ["X", "-", "<", ">", "[", "]"]
 piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
