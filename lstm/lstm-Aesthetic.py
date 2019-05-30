@@ -49,23 +49,25 @@ tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
 #            above ground) being deleted.
 # probs_c == probability of tile near stair tile being 'created'
 #            (i.e. transformed into a stair tile)
+
+
 def perturb_level(level_by_col, probp_d, probs_d, probs_c):
     perturbed_level = []
-    level_cpy = level_by_column[:]
-    for i in range(len(temp_level)):
+    level_cpy = level_by_col[:]
+    for i in range(len(level_cpy)):
         if level_cpy[i] in pipe and random.randint(0, 99) < probp_d:
             perturbed_level.append(random.choice(piecesFull))
             if level_cpy[i] == "<":
                 p_itr = i
-                while tempLevel[p_itr] in pipe:
-                    tempLevel[p_itr] = "-"
-                    tempLevel[p_itr + 14] = "-"
+                while level_cpy[p_itr] in pipe:
+                    level_cpy[p_itr] = "-"
+                    level_cpy[p_itr + 14] = "-"
                     p_itr += 1
-            elif level_cpy[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs_d:
-            preturbed_level.append(random.choice(piecesFull))
-            else:
-                perturbed_level.append(level_cpy[i])
-    return (level_cpy, perturbed_level)
+        elif level_cpy[i] == "X" and i % 14 != 13 and random.randint(0, 99) < probs_d:
+                perturbed_level.append(random.choice(piecesFull))
+        else:
+            perturbed_level.append(level_cpy[i])
+    return (perturbed_level, level_cpy)
 
 
 def prepareData():
@@ -85,9 +87,9 @@ def prepareData():
         # Create Training Data
         for k in range(opt.tsize):
             # TODO: Add option for distinct staircase creation probability
-            training_data.append(perturb_level(level, opt.probp, opt.probs, opt.probs))
+            training_data.append(perturb_level(levelByColumn, opt.probp, opt.probs, opt.probs))
         for k in range(int(opt.tsize / 10)):
-            testing_data.append(perturb_level(level, opt.probp, opt.probs, opt.probs))
+            testing_data.append(perturb_level(levelByColumn, opt.probp, opt.probs, opt.probs))
     return training_data, testing_data
 
 
