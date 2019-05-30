@@ -41,6 +41,8 @@ def get_absolute_path(rel_p, base_p = ROOT_DIR_PATH):
 
 # ---- Environment Helper Functions ----
 
+# TODO: Implement default placeholder to use 
+
 def setup_environment():
     load_config()
 
