@@ -54,7 +54,7 @@ def setup_environment():
                 )
             )
         _env_set_or_append(var, val)
-        print('JAVA_HOME=' + str(os.environ['JAVA_HOME'])
+        # print('JAVA_HOME=' + str(os.environ['JAVA_HOME']))
 
 
     # ---- Some hardcoded default behaviors ----
