@@ -6,10 +6,6 @@ HUMAN_AGENT_CLASS = 'ch.idsia.ai.agents.human.HumanKeyboardAgent'
 FORCED_AGENT_CLASS = 'edu.unc.cs.smbpcg.simulator.ForcedActionAgent'
 SIMULATION_HANDLER_CLASS = 'edu.unc.cs.smbpcg.simulator.SimulationHandler'
 
-# Standard Library classes
-_J_ArrayList = jnius.autoclass('java.util.ArrayList')
-_J_Integer = jnius.autoclass('java.lang.Integer')
-
 # Project classes
 _J_AStarAgent = jnius.autoclass(ASTAR_AGENT_CLASS)
 _J_HumanKeyboardAgent = jnius.autoclass(HUMAN_AGENT_CLASS)
