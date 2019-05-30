@@ -4,8 +4,6 @@ import ch.idsia.ai.agents.Agent;
 import ch.idsia.ai.agents.ai.BasicAIAgent;
 import ch.idsia.mario.environments.Environment;
 
-import java.util.ArrayList;
-
 public class ForcedActionAgent extends BasicAIAgent implements Agent
 {
     protected boolean action[] = new boolean[Environment.numberOfButtons];
