@@ -96,7 +96,6 @@ def prepareData():
                     proturbedLevel.append(random.choice(pieces))
                 else:
                     proturbedLevel.append(levelByColumn[i])
-            print(proturbedLevel)
             testing_data.append((proturbedLevel, levelByColumn))
     return training_data, testing_data
 
