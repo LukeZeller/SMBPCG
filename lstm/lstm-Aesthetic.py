@@ -37,6 +37,7 @@ def prepare_sequence(seq, to_ix):
     res = torch.tensor(idxs, dtype=torch.long).cuda()
     return res
 
+
 pipe = ["<", ">", "[", "]"]
 pieces = ["X", "-", "<", ">", "[", "]"]
 piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
@@ -60,26 +61,26 @@ def prepareData():
                 levelByColumn.append(levelByRow[i][j])
         # Create Training Data
         for k in range(opt.tsize):
-            proturbedLevel = []
+            perturbedLevel = []
             for i in range(len(levelByColumn)):
                 if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
-                    proturbedLevel.append(random.choice(pieces))
+                    perturbedLevel.append(random.choice(pieces))
                 elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
-                    proturbedLevel.append(random.choice(pieces))
+                    perturbedLevel.append(random.choice(pieces))
                 else:
-                    proturbedLevel.append(levelByColumn[i])
-            training_data.append((proturbedLevel, levelByColumn))
+                    perturbedLevel.append(levelByColumn[i])
+            training_data.append((perturbedLevel, levelByColumn))
         # Create Testing Data
         for k in range(int(opt.tsize / 10)):
-            proturbedLevel = []
+            perturbedLevel = []
             for i in range(len(levelByColumn)):
                 if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
-                    proturbedLevel.append(random.choice(pieces))
+                    perturbedLevel.append(random.choice(pieces))
                 elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
-                    proturbedLevel.append(random.choice(pieces))
+                    perturbedLevel.append(random.choice(pieces))
                 else:
-                    proturbedLevel.append(levelByColumn[i])
-            testing_data.append((proturbedLevel, levelByColumn))
+                    perturbedLevel.append(levelByColumn[i])
+            testing_data.append((perturbedLevel, levelByColumn))
     return training_data, testing_data
 
 
@@ -107,7 +108,6 @@ class LSTMTagger(nn.Module):
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.lstm.flatten_parameters()
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
