@@ -6,23 +6,26 @@ import argparse
 import random
 from datetime import datetime
 from tqdm import tqdm
-# import sys
-# import getopt
+import numpy as np
+import os
 
 random.seed(datetime.now())
 
 parser = argparse.ArgumentParser()
+parser.add_argument('directory')
 parser.add_argument('--niter', type=int, default=300,
                     help='number of epochs to train for')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--edim', type=int, default=32,
+parser.add_argument('--edim', type=int, default=256,
                     help='number of embedding dimensions')
-parser.add_argument('--hdim', type=int, default=32,
+parser.add_argument('--hdim', type=int, default=256,
                     help='number of hidden dimensions')
 parser.add_argument('--tsize', type=int, default=100,
                     help='number of training sets create per level')
-parser.add_argument('--prob', type=int, default=30,
+parser.add_argument('--probp', type=int, default=30,
                     help='prob a pipe tile is changed')
+parser.add_argument('--probs', type=int, default=30,
+                    help='prob a stair tile is changed')
 opt = parser.parse_args()
 
 assert torch.cuda.is_available()
@@ -34,41 +37,60 @@ def prepare_sequence(seq, to_ix):
     res = torch.tensor(idxs, dtype=torch.long).cuda()
     return res
 
-
-# numArg = len(sys.argv)
-# levelByRow = [[] for i in range(numArg)]
-# for i in range(numArg):
-
-with open("../simulator/mario-1-1.txt") as textFile:
-    levelByRow = [list(line) for line in textFile]
-# We read in a text file version of SMB1 level 1-1 into a 2-D array
-# However, the LSTM will read the level column by column
-# So, it is necessary to swap rows and columns
-levelByColumn = ""
-for j in range(len(levelByRow[0])):
-    for i in range(len(levelByRow)):
-        levelByColumn += str(levelByRow[i][j]) + " "
-levelByColumnArray = levelByColumn.split()
-training_data = [(levelByColumnArray, levelByColumnArray)]
-
 pipe = ["<", ">", "[", "]"]
 pieces = ["X", "-", "<", ">", "[", "]"]
 piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
                "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
 
-# Create Training Data
-numTiles = [0 for i in range(10)]
-for k in range(opt.tsize):
-    proturbedLevel = ""
-    for i in range(len(levelByColumnArray)):
-        numTiles[tileMapping[levelByColumnArray[i]]] += 1
-        if levelByColumnArray[i] in pipe and random.randint(0, 99) < opt.prob:
-            proturbedLevel += random.choice(piecesFull) + " "
-        else:
-            proturbedLevel += levelByColumnArray[i] + " "
-    training_data.append((proturbedLevel.split(), levelByColumnArray))
-print(numTiles)
+
+def prepareData():
+    training_data = []
+    testing_data = []
+    for filename in os.listdir(opt.directory):
+        levelByColumn = []
+        with open(opt.directory + "/" + filename) as textFile:
+            levelByRow = np.array([list(line) for line in textFile])
+        levelByRow = levelByRow[:, :-1]
+        # We read in a text file version the level into a 2-D array
+        # However, the LSTM will read the level column by column
+        # So, it is necessary to swap rows and columns and then flatten the level
+        for j in range(len(levelByRow[0])):
+            for i in range(len(levelByRow)):
+                levelByColumn.append(levelByRow[i][j])
+        # Create Training Data
+        for k in range(opt.tsize):
+            proturbedLevel = []
+            for i in range(len(levelByColumn)):
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
+                    proturbedLevel.append(random.choice(pieces))
+                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
+                    proturbedLevel.append(random.choice(pieces))
+                else:
+                    proturbedLevel.append(levelByColumn[i])
+            training_data.append((proturbedLevel, levelByColumn))
+        # Create Testing Data
+        for k in range(int(opt.tsize / 10)):
+            proturbedLevel = []
+            for i in range(len(levelByColumn)):
+                if levelByColumn[i] in pipe and random.randint(0, 99) < opt.probp:
+                    proturbedLevel.append(random.choice(pieces))
+                elif levelByColumn[i] == "X" and i % 14 != 13 and random.randint(0, 99) < opt.probs:
+                    proturbedLevel.append(random.choice(pieces))
+                else:
+                    proturbedLevel.append(levelByColumn[i])
+            testing_data.append((proturbedLevel, levelByColumn))
+    return training_data, testing_data
+
+
+training_data, testing_data = prepareData()
+for i, data in enumerate(training_data):
+    swapi = random.randrange(i, len(training_data))
+    training_data[i], training_data[swapi] = training_data[swapi], data
+for i, data in enumerate(testing_data):
+    swapi = random.randrange(i, len(testing_data))
+    testing_data[i], testing_data[swapi] = testing_data[swapi], data
+
 EMBEDDING_DIM = opt.edim
 HIDDEN_DIM = opt.hdim
 
@@ -85,6 +107,7 @@ class LSTMTagger(nn.Module):
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm.flatten_parameters()
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
@@ -100,6 +123,10 @@ class LSTMTagger(nn.Module):
 model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(tileMapping),
                    len(tileMapping))
 model.cuda()
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    model = nn.DataParallel(model)
+
 loss_function = nn.NLLLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1)
 
@@ -125,32 +152,25 @@ for epoch in tqdm(range(opt.niter)):
 torch.save(model.state_dict(), "lstm_" + str(opt.tsize) + "_" + str(opt.niter) + ".pth")
 
 # Find training accuracy
-with torch.no_grad():
-    correct = 0
-    for i in range(len(training_data)):
-        inputs = prepare_sequence(training_data[i][0], tileMapping)
-        tag_scores = model(inputs)
-        values, indices = torch.max(tag_scores, 1)
-        for j in range(len(indices)):
-            if indices[j].item() == tileMapping[levelByColumnArray[j]]:
-                correct += 1
-    total = len(training_data) * len(indices)
-    accuracy = (correct / total) * 100
-    print("Training accuracy " + str(round(accuracy, 2)) + "%")
+# with torch.no_grad():
+#     correct = 0
+#     total = 0
+#     for i in range(len(training_data)):
+#         inputs = prepare_sequence(training_data[i][0], tileMapping)
+#         tag_scores = model(inputs)
+#         values, indices = torch.max(tag_scores, 1)
+#         for j in range(len(indices)):
+#             total += 1
+#             if indices[j].item() == tileMapping[training_data[i][1][j]]:
+#                 correct += 1
+#     accuracy = (correct / total) * 100
+#     print("Training accuracy " + str(round(accuracy, 2)) + "%")
 
 # Find Test accuracy
 with torch.no_grad():
-    testing_data = []
-    for k in range(opt.tsize):
-        proturbedLevel = ""
-        for i in range(len(levelByColumn)):
-            if levelByColumn[i] in pipe and random.randint(0, 99) < opt.prob:
-                proturbedLevel += random.choice(piecesFull) + " "
-            else:
-                proturbedLevel += levelByColumn[i] + " "
-        testing_data.append((proturbedLevel.split(), levelByColumnArray))
     correct = 0
     fullCorrect = 0
+    total = 0
     tilesIncorrect = [[0 for i in range(10)] for j in range(10)]
     for i in range(len(testing_data)):
         inputs = prepare_sequence(testing_data[i][0], tileMapping)
@@ -158,14 +178,14 @@ with torch.no_grad():
         values, indices = torch.max(tag_scores, 1)
         isCorrect = True
         for j in range(len(indices)):
-            if indices[j].item() == tileMapping[levelByColumnArray[j]]:
+            total += 1
+            if indices[j].item() == tileMapping[testing_data[i][1][j]]:
                 correct += 1
             else:
                 isCorrect = False
-                tilesIncorrect[tileMapping[levelByColumnArray[j]]][indices[j].item()] += 1
+                tilesIncorrect[tileMapping[testing_data[i][1][j]]][indices[j].item()] += 1
         if isCorrect:
             fullCorrect += 1
-    total = len(testing_data) * len(indices)
     accuracy = (correct / total) * 100
     print("Testing accuracy " + str(round(accuracy, 2)) + "%")
     fullAccuracy = (fullCorrect / len(testing_data)) * 100
