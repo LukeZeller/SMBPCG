@@ -21,7 +21,7 @@ ROOT_DIR = str(ROOT_DIR_PATH)
 # no work to do.
 if isinstance(ROOT_DIR_PATH, pathlib.PosixPath):
     SYS_ENV_DELIMITER = ':'
-elif isinstance(ROOT_DIR_PATH, pathlib.WindowsPath)
+elif isinstance(ROOT_DIR_PATH, pathlib.WindowsPath):
     SYS_ENV_DELIMITER = ';'
 else:
     raise RuntimeError( (
@@ -32,6 +32,7 @@ else:
 # Global variables for config data
 conf_data = None
 git_placeholder = None
+default_placeholder = None
 
 def load_config(force_load=False):
     global conf_data, git_placeholder
@@ -41,6 +42,7 @@ def load_config(force_load=False):
     with open(get_absolute_path(CONFIG_FILE, CONFIG_DIR), 'r') as conf_f:
         conf_data = yaml.safe_load(conf_f)
     git_placeholder = conf_data['git_placeholder']
+    default_placeholder = conf_data['default_placeholder']
 
 # ---- General Helper Functions ----
 
@@ -61,8 +63,10 @@ def setup_environment():
     load_config()
 
     # Set/update environment for current python VM
-    for var, val in conf_data['environment'].items():
-        if val == git_placeholder:
+    for var, cfg_info in conf_data['environment'].items():
+        if cfg_info['value'] == default_placeholder:
+            continue
+        if cfg_info['value'] == git_placeholder:
             raise ValueError(
                 ("Version control placeholder value present in configuration key '"
                  + var + "'. Update " + CONFIG_FILE + " locally to reflect proper "
@@ -72,25 +76,32 @@ def setup_environment():
         # This can be generalized, but for now enforcing the following behavior is sufficient:
         # JAVA_HOME does not allow appending (instead overwriting) but the other two path variables
         # (PATH and CLASSPATH) do.
-        _env_set_or_append(var, val, allow_append=(var != 'JAVA_HOME'))
+        _env_set_or_append(var, cfg_info['value'], allow_append=cfg_info['appendable'])
         # print('JAVA_HOME=' + str(os.environ['JAVA_HOME']))
-
 
     # ---- Some hardcoded default behaviors ----
 
-    # If JAVA_HOME is set but PATH is not in conf_data, use %JAVA_HOME%/server
-    # as PATH to JVM
-    if 'JAVA_HOME' in os.environ and 'PATH' not in conf_data['environment']:
-        _env_set_or_append('PATH', get_absolute_path("server", os.environ['JAVA_HOME'].strip(';')))
+    # If JDK_HOME is set but PATH is not in conf_data, try %JAVA_HOME%/jre/bin/server as PATH to JVM.
+    # As far as I know, this will only work on Windows installations of Java. However, on posix-like
+    # systems the path to the JVM varies is both dependent on the system and the version of Java, so
+    # we do not attempt to determine a proper default value. For posix systems, pyjnius tries to
+    # determine the proper jvm location (in its setup.py), but we need to update the path variable
+    # in Windows. 
+    if 'JDK_HOME' in os.environ and not _has_value('PATH'):
+        _env_set_or_append('PATH', get_absolute_path("jre/bin/server", os.environ['JDK_HOME'].strip(';')))
 
-    # If CLASSPATH is not in conf_data, use [Directory of config.py] + JAVA_CLASSPATH_REL
-    if 'CLASSPATH' not in conf_data['environment']:
+    # If CLASSPATH is not provided in conf_data, use [Directory of config.py] + JAVA_CLASSPATH_REL
+    if not _has_value('CLASSPATH'):
         _env_set_or_append('CLASSPATH', get_absolute_path(JAVA_CLASSPATH_REL))
+
+def _has_value(var):
+    return ( var in conf_data['environment'] and
+             conf_data['environment'][var]['value'] != default_placeholder )
 
 def _env_set_or_append(var, val, allow_append=True):
     # Argument val is assumed not to have terminating delimiter
-    val += SYS_ENV_DELIMITER
     if var in os.environ and allow_append:
+        val += SYS_ENV_DELIMITER
         if os.environ[var][-1] != SYS_ENV_DELIMITER:
             os.environ[var] += SYS_ENV_DELIMITER
         # Withoug this condition, identical values can be repeatedly appended to the same

@@ -1,3 +1,9 @@
+# File config.yml_git_version is stored in the git repository. To complete configuration,
+# copy this file into one named config.yml (in the same folder) and replace occurrences
+# of git_placeholder with a value or default_placeholder (indicating that the default
+# configuration logic should be attempted. Note that config.yml won't be tracked by git.
+# For more information on the usage of the configuration below, see config_mgr.py
+
 # Placeholder value is used to indicate that value should be replaced
 # with proper value in local configuration
 git_placeholder: &placeholder_ref 2209843298
@@ -6,14 +12,28 @@ git_placeholder: &placeholder_ref 2209843298
 default_placeholder: &default_ref 0213080909
 
 # Any configuration values that should be loaded into the environment
-# For any variables with default behavior indicated, comment or remove
-# line with variable below to use default behavior
+# For any variables with default behavior indicated, set their value
+# to *default_ref. Note that appendable values should not be altered.
 environment:
-  # JRE/JDK home directory on local machine, e.g. /path/to/java/jreVERSION/bin
-  JAVA_HOME: *placeholder_ref
+  # JDK home directory on local machine, e.g. /path/to/java/jdkVERSION/
+  JDK_HOME:
+    value: &jdk_home_ref *git_placeholder
+    appendable: false
+
+  # Same value as JDK_HOME, but jnius uses different vars depending on the OS. Generally, this
+  # entry should not be modified.
+  JAVA_HOME:
+    value: *jdk_home_ref
+    appendable: false
+
   # Directory containing jvm binary (jvm.; e.g. /path/to/java/jreVERSION/bin/server)
-  # Default behavior: If JAVA_HOME is set, PATH += %JAVA_HOME%/server;
-  PATH: *placeholder_ref
+  # Default behavior: If JDK_HOME is set, PATH += %JAVA_HOME%/server;
+  PATH:
+    value: *git_placeholder
+    appendable: true
+
   # Directory containing simulator JAR or class files (e.g. /path/to/project/simulator/target/classes)
   # Default behavior: CLASSPATH += [Directory of config.py]/../simulator/target/classes
-  CLASSPATH: *placeholder_ref
+  CLASSPATH:
+    value: *default_ref
+    appendable: true
