@@ -2,18 +2,21 @@ import functools
 import math
 from multiprocessing import Pool
 import os
+import time
 
 import cma
 
 from common import constants
-from common.level import Level
 from common.simulation import SimulationProxy
+from evolution.feasible_shifts import number_of_shifts_and_jumps
 from gan import generate
+
 
 HARD_JUMP_WEIGHT = 10
 MEDIUM_JUMP_WEIGHT = 5
 EASY_JUMP_WEIGHT = 3
 TRIVIAL_JUMP_WEIGHT = 1
+PENALTY_FOR_FAILURE = 1000
 
 REPEAT_REWARD = 400
 
@@ -77,43 +80,31 @@ def _fitness(latent_vector):
 def _fitness_function(level, ret_passed_bool = False):
     sim_proxy = SimulationProxy(level)
     sim_proxy.invoke()
-
-    penalty = 0
+    info = sim_proxy.eval_info
+    passed = info.level_passed()
     
-    if not sim_proxy.eval_info.level_passed():
-        penalty = 1 - sim_proxy.eval_info.lengthOfLevelPassedPhys / constants.LEVEL_LENGTH
-
-        ### TEST ###
-        '''
-        print(sim_proxy.eval_info.lengthOfLevelPassedPhys)
-        print(sim_proxy.eval_info.toString())
-        print(sim_proxy.eval_info.marioRanOutOfTime)
-        print(sim_proxy.eval_info.marioDiedToFall)
-        print(sim_proxy.eval_info.marioDiedToEnemy)
-        '''
-
-        if sim_proxy.eval_info.marioRanOutOfTime:
-            penalty *= 100
-        elif sim_proxy.eval_info.marioDiedToFall:
-            penalty *= 50
-        elif sim_proxy.eval_info.marioDiedToEnemy:
-            penalty *= 20
-        else:
-            raise RuntimeError( ("If mario failed, it should have been due to  running out "
-                                 "of time, running into an enemy, or falling into a hole!")
-            )
-        
-    fitness = (
-        - sim_proxy.eval_info.trivialJumpActionsPerformed * TRIVIAL_JUMP_WEIGHT
-        - sim_proxy.eval_info.easyJumpActionsPerformed * EASY_JUMP_WEIGHT
-        - sim_proxy.eval_info.mediumJumpActionsPerformed * MEDIUM_JUMP_WEIGHT
-        - sim_proxy.eval_info.hardJumpActionsPerformed * HARD_JUMP_WEIGHT
-        + penalty )
-
+    if not passed:
+        difficulty = _calculate_difficulty_for_failure(info)
+    else:
+        difficulty = _calculate_difficulty_for_success(info, level)
+    fitness = -difficulty
+    
     if ret_passed_bool:
-        return fitness, sim_proxy.eval_info.level_passed()
+        return fitness, passed
     else:
         return fitness
+    
+def _calculate_difficulty_for_failure(info):
+    fraction_of_level_completed = float(info.lengthOfLevelPassedPhys) / constants.LEVEL_LENGTH
+    return 1 - fraction_of_level_completed
+
+def _calculate_difficulty_for_success(info, level):
+    num_shifts, num_jumps = number_of_shifts_and_jumps(info, level)
+    print("Shifts: ", num_shifts)
+    print("Num jumps: ", num_jumps)
+    average_number_of_shifts_per_jump = float(num_shifts) / num_jumps
+    # The more that the jumps can be shifted, the easier the level is
+    return 1 / average_number_of_shifts_per_jump
 
 def run():
     cma_es = cma.CMAEvolutionStrategy([0] * 32, 1 / math.sqrt(32), {'maxiter':MAX_ITERS})
@@ -125,7 +116,6 @@ def run():
     print("Pool sz: " + str(os.cpu_count()))
 
     p_sz = 0
-    
     while not cma_es.stop():
         population = cma_es.ask()
         p_sz = len(population)
@@ -135,8 +125,8 @@ def run():
             print(" ---- Generation " + str(gen_itr) + " ----")
             fits = p.map(_fitness, population)
             print("GEN FITS: " + str(fits))
-            print("GEN AVG: " + str(sum(fits)/len(fits)))
-            avg_fits.append(sum(fits)/len(fits))
+            print("GEN AVG: " + str(sum(fits) / len(fits)))
+            avg_fits.append(sum(fits) / len(fits))
             cma_es.tell(population, fits)
             for i in range(p_sz):
                 if fits[i] <= best_fitness:
