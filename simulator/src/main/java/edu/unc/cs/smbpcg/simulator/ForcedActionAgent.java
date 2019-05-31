@@ -21,7 +21,7 @@ public class ForcedActionAgent extends BasicAIAgent implements Agent
         if (moves == null)
             this.moves = null;
         else
-            this.moves = new MoveList(moves);
+            this.moves = moves.copy();
         this.cycleMoves = cycleMoves;
     }
 

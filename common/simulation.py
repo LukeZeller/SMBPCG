@@ -35,7 +35,11 @@ def play_1_1():
 def proxy_test():
     return
 
+java_level_cache = {}
 def _get_java_level(level):
+    if level in java_level_cache:
+        return java_level_cache[level]
+    
     # j_level_arraylist is a Java ArrayList of rows in the level
     j_level_list = _J_ArrayList(level.height)
     for y in range(level.height):
@@ -46,8 +50,10 @@ def _get_java_level(level):
             # java primitive int, so we must wrap in Integer
             j_row_list.add(_J_Integer(level.get_tile_int(x, y)))
         j_level_list.add(j_row_list)
-
-    return _J_LevelParser.createLevelJson(j_level_list)
+            
+    res = _J_LevelParser.createLevelJson(j_level_list)
+    java_level_cache[level] = res
+    return res
 
 def _instantiated_simulation_handler(level, agent, visualize):
     if level is None:

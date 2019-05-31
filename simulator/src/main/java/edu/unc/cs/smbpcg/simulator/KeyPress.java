@@ -58,4 +58,8 @@ public class KeyPress {
         KeyPress other = (KeyPress) o;
         return Arrays.equals(this.pressed, other.pressed);
     }
+
+    public KeyPress copy() {
+        return new KeyPress(this.pressed);
+    }
 }

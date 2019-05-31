@@ -2,12 +2,13 @@ import functools
 import math
 from multiprocessing import Pool
 import os
+import time
 
 import cma
 
 from common import constants
 from common.simulation import SimulationProxy
-from evolution.feasible_shifts import number_of_feasible_shifts
+from evolution.feasible_shifts import number_of_shifts_and_jumps
 from gan import generate
 
 
@@ -98,8 +99,9 @@ def _calculate_difficulty_for_failure(info):
     return 1 - fraction_of_level_completed
 
 def _calculate_difficulty_for_success(info, level):
-    num_shifts = number_of_feasible_shifts(info, level)
-    num_jumps = 1
+    num_shifts, num_jumps = number_of_shifts_and_jumps(info, level)
+    print("Shifts: ", num_shifts)
+    print("Num jumps: ", num_jumps)
     average_number_of_shifts_per_jump = float(num_shifts) / num_jumps
     # The more that the jumps can be shifted, the easier the level is
     return 1 / average_number_of_shifts_per_jump
