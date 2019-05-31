@@ -64,9 +64,9 @@ def setup_environment():
 
     # Set/update environment for current python VM
     for var, cfg_info in conf_data['environment'].items():
-        print(var + " has value " + str(cfg_info['value']))
+        # print(var + " has value " + str(cfg_info['value']))
         if cfg_info['value'] == default_placeholder:
-            print("Default @ " + var)
+            # print("Default @ " + var)
             continue
         if cfg_info['value'] == git_placeholder:
             raise ValueError(
