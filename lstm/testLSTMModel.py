@@ -91,7 +91,7 @@ def _add_some_rocks(level_by_col, probs, probg):
         # offset of all neighbors excluding neighbor below, which
         # is handled separately to account for ground tiles
         for offset in [-14, -1, 14]:
-            if i == 0 and offset == -1:
+            if i % 14 == 0 and offset == -1:
                 continue
             j = i + offset
             if j >= 0 and j < sz and level_by_col[j] == 'X':
