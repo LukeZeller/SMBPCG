@@ -27,7 +27,7 @@ _J_LevelParser = jnius.autoclass(LEVEL_PARSER_CLASS)
 _J_SimulationHandler = jnius.autoclass(SIMULATION_HANDLER_CLASS)
 
 def play_1_1():
-    level = _J_LevelParser.createLevelASCII(config_mgr.get_absolute_path('simulator/Mario-1-1.txt'))
+    level = _J_LevelParser.createLevelASCII(config_mgr.get_absolute_path('simulator/mario-1-1.txt'))
     handler = _J_SimulationHandler(level)
     handler.init()
     handler.invoke()

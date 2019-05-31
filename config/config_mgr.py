@@ -35,7 +35,7 @@ git_placeholder = None
 default_placeholder = None
 
 def load_config(force_load=False):
-    global conf_data, git_placeholder
+    global conf_data, git_placeholder, default_placeholder
     # Do not reload config unless force_load is True
     if conf_data is not None and not force_load:
         return
@@ -64,7 +64,9 @@ def setup_environment():
 
     # Set/update environment for current python VM
     for var, cfg_info in conf_data['environment'].items():
+        print(var + " has value " + str(cfg_info['value']))
         if cfg_info['value'] == default_placeholder:
+            print("Default @ " + var)
             continue
         if cfg_info['value'] == git_placeholder:
             raise ValueError(

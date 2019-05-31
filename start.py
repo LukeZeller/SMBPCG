@@ -3,10 +3,10 @@
 import numpy as np
 import cProfile
 
-from common.simulation import SimulationProxy
+from common.simulation import SimulationProxy, play_1_1
 from common.agents import create_human_agent, create_astar_agent, create_forced_agent
 from evolution import evolve
-from gan import generate
+from gan import generator_client
 
 def test_gan():
     generate.load_generator()
@@ -47,6 +47,8 @@ def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
     
 if __name__ == '__main__':
+    play_1_1()
+    test_evolution()
     latent_vector, fitness = test_fitness(False)
     print(latent_vector)
     print("Fitness is: ", fitness)

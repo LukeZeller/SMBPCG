@@ -6,7 +6,7 @@
 
 # Placeholder value is used to indicate that value should be replaced
 # with proper value in local configuration
-git_placeholder: &placeholder_ref 2209843298
+git_placeholder: &git_ref 2209843298
 
 # Placeholder value indicating that default value should be used
 default_placeholder: &default_ref 0213080909
@@ -17,7 +17,7 @@ default_placeholder: &default_ref 0213080909
 environment:
   # JDK home directory on local machine, e.g. /path/to/java/jdkVERSION/
   JDK_HOME:
-    value: &jdk_home_ref *git_placeholder
+    value: &jdk_home_ref *git_ref
     appendable: false
 
   # Same value as JDK_HOME, but jnius uses different vars depending on the OS. Generally, this
@@ -29,7 +29,7 @@ environment:
   # Directory containing jvm binary (jvm.; e.g. /path/to/java/jreVERSION/bin/server)
   # Default behavior: If JDK_HOME is set, PATH += %JAVA_HOME%/server;
   PATH:
-    value: *git_placeholder
+    value: *git_ref
     appendable: true
 
   # Directory containing simulator JAR or class files (e.g. /path/to/project/simulator/target/classes)

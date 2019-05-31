@@ -9,7 +9,7 @@ import cma
 from common import constants
 from common.simulation import SimulationProxy
 from evolution.feasible_shifts import number_of_shifts_and_jumps
-from gan import generate
+from gan import generator_client
 
 
 HARD_JUMP_WEIGHT = 10
