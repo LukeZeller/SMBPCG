@@ -162,6 +162,7 @@ class LSTMTagger(nn.Module):
         lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
         tag_scores = F.log_softmax(tag_space, dim=1)
+        self.lstm.flatten_parameters()
         return tag_scores
 
 
