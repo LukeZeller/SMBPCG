@@ -59,6 +59,8 @@ def _add_some_rocks(level_by_col, probs, probg):
         # offset of all neighbors excluding neighbor below, which
         # is handled separately to account for ground tiles
         for offset in [-14, -1, 14]:
+            if i % 14 == 0 and offset == -1:
+                continue
             j = i + offset
             if j >= 0 and j < sz and level_by_col[j] == 'X':
                 n_adj_s += 1
@@ -100,8 +102,8 @@ def _perturb_level(level_by_col, probp_d, probs_d, probs_c):
             perturbed_level.append(level_cpy[i])
 
     probs_c /= 100
-    _add_some_rocks(perturbed_level, probs_c, probs_c / 2)
-    _add_some_rocks(perturbed_level, probs_c, probs_c / 2)
+    _add_some_rocks(perturbed_level, probs_c, probs_c / 8)
+    _add_some_rocks(perturbed_level, probs_c, probs_c / 8)
 
     return (perturbed_level, level_cpy)
 
@@ -162,7 +164,6 @@ class LSTMTagger(nn.Module):
         lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
         tag_scores = F.log_softmax(tag_space, dim=1)
-        self.lstm.flatten_parameters()
         return tag_scores
 
 
