@@ -312,6 +312,10 @@ def evaluate(encoder, decoder, sequence, max_length=MAX_LENGTH):
 hidden_size = opt.hdim
 encoder1 = EncoderRNN(len(training_data), hidden_size).to(device)
 attn_decoder1 = AttnDecoderRNN(hidden_size, len(training_data)).to(device)
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    encoder1 = nn.DataParallel(encoder1)
+    attn_decoder1 = nn.DataParallel(attn_decoder1)
 
 trainIters(encoder1, attn_decoder1)
 
