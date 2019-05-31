@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.unc.cs.smbpcg.simulator.KeyPress;
+import edu.unc.cs.smbpcg.simulator.MoveList;
 import reader.JsonReader;
 
 
@@ -151,20 +154,16 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
         boolean marioDiedToFall = false;
         boolean marioDiedToEnemy = false;
         boolean marioRanOutOfTime = false;
-// TODO: Manage better place for this:
-        levelScene.mario.resetCoins();
-        LevelScene backup = null;
 
-        while (/*Thread.currentThread() == animator*/ running) {
-            // Display the next frame of animation.
-//                repaint();
+        MoveList marioMoves = new MoveList();
+        levelScene.mario.resetCoins();
+        while (running) {
             scene.tick();
             if (gameViewer != null && gameViewer.getContinuousUpdatesState())
                 gameViewer.tick();
 
             float alpha = 0;
 
-//            og.setColor(Color.RED);
             if (GlobalOptions.VisualizationOn) {
                 og.fillRect(0, 0, 320, 240);
                 scene.render(og, alpha);
@@ -179,29 +178,27 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
             float current_mario_x = levelScene.mario.x;
             float current_mario_y = levelScene.mario.y;
 
-            if (current_mario_y > EvaluationInfo.lowestValidPosition && levelScene.getTimeLeft() > 0)
-            {
+            if (current_mario_y > EvaluationInfo.lowestValidPosition && levelScene.getTimeLeft() > 0)  {
                 marioDiedToFall = true;
             }
-            if (!marioDiedToFall && levelScene.mario.getStatus() == 0 && levelScene.getTimeLeft() > 0)
-            {
+            if (!marioDiedToFall && levelScene.mario.getStatus() == 0 && levelScene.getTimeLeft() > 0)  {
                 marioDiedToEnemy = true;
             }
-            // System.out.println("Current x and y: " + current_mario_x + " " + current_mario_y);
 
-            boolean[] action = agent.getAction(this/*DummyEnvironment*/);
-            if (action != null)
+            KeyPress kp = new KeyPress(agent.getAction(this/*DummyEnvironment*/));
+            if (kp.isValid())
             {
-                for (int i = 0; i < Environment.numberOfButtons; ++i){
-                    if (action[i])
+                marioMoves.addKeyPress(kp);
+                for (int button = 0; button < Environment.numberOfButtons; ++button){
+                    if (kp.isPressed(button))
                     {
-                        if(i == Mario.KEY_JUMP) {
+                        if(button == Mario.KEY_JUMP) {
                             /*
-                            * If gapBetweenJumps is <= 1, that means the jump key was just held or pressed for the first time
-                            * We categorize the difficulty of jumps based on # of frames between the end of one jump action
-                            * which corresponds to the jump key being released and the start of the next jump action
-                            * which corresponds to the jump key being pressed
-                            */
+                             * If gapBetweenJumps is <= 1, that means the jump key was just held or pressed for the first time
+                             * We categorize the difficulty of jumps based on # of frames between the end of one jump action
+                             * which corresponds to the jump key being released and the start of the next jump action
+                             * which corresponds to the jump key being pressed
+                             */
                             int gapBetweenJumps = frame - previousJumpFrame;
                             if (gapBetweenJumps > 1)
                             {
@@ -221,12 +218,13 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
                                 else {
                                     /* there should never be a level large enough for the gap between two jumps to be larger
                                      * than the trivial jump threshold */
+                                    throw new RuntimeException("Gap between jumps is impossibly big");
                                 }
                             }
                             previousJumpFrame = frame;
                         }
                         ++totalActionsPerfomed;
-                       // break;
+                        // break;
                     }
                 }
             }
@@ -238,62 +236,15 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
 
             if (hardJumpActionsPerformed + mediumJumpActionsPerformed + easyJumpActionsPerformed + trivialJumpActionsPerformed != jumpActionsPerformed) {
                 throw new RuntimeException("Expected the total number of jumps to be equal to the sum of hard/medium/easy/trivial jumps\n" +
-                                            "Found " + jumpActionsPerformed + " jumps\n" +
-                                            " and have " + hardJumpActionsPerformed + " hard jumps\n" +
-                                            mediumJumpActionsPerformed + " medium jumps\n" +
-                                            easyJumpActionsPerformed + " easy jumps\n" +
-                                            trivialJumpActionsPerformed + " trivial jumps");
+                        "Found " + jumpActionsPerformed + " jumps\n" +
+                        " and have " + hardJumpActionsPerformed + " hard jumps\n" +
+                        mediumJumpActionsPerformed + " medium jumps\n" +
+                        easyJumpActionsPerformed + " easy jumps\n" +
+                        trivialJumpActionsPerformed + " trivial jumps");
             }
 
-
-            //Apply action;
-//            scene.keys = action;
-            ((LevelScene) scene).mario.keys = action;
+            ((LevelScene) scene).mario.keys = kp.getPressed();
             ((LevelScene) scene).mario.cheatKeys = cheatAgent.getAction(null);
-            
-            //Measure Metrics here:
-            /*float diePerc = 0;
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                continue;
-            }
-            for(int i=0; i<=GlobalMetricOptions.numRollouts; i++){
-                try{
-                    backup = (LevelScene) ((LevelScene) scene).clone();
-                }catch (CloneNotSupportedException e)
-		{
-                    e.printStackTrace();
-		}
-                            
-                for(int j=0; j<=GlobalMetricOptions.rolloutDepth; j++){
-                    backup.tick(); 
-                    boolean[] action2 = GlobalMetricOptions.roller.getAction(this);
-                    //System.out.println("---");
-                    backup.mario.keys = action2;
-                    System.out.println("Killed Creatures by Fireball: " + backup.killedCreaturesByFireBall);
-                    System.out.println("Killed Creatures by Shell: "+ backup.killedCreaturesByShell);
-                    System.out.println("Killed Creatures by Stomp: " +backup.killedCreaturesByStomp);
-                    System.out.println("Killed Creatures Total: "+backup.killedCreaturesTotal);
-                    System.out.println("Coins: "+ backup.mario.coins);
-                    //TODO vv: coins collected repeatedly
-                    System.out.println("Death time: " +backup.mario.deathTime);
-                    System.out.println("Mario lives: "+backup.mario.lives);
-                    System.out.println("Win Time: "+backup.mario.winTime);
-                    System.out.println("X Death pos: "+ backup.mario.xDeathPos);
-                    System.out.println("Y Death pos: "+ backup.mario.yDeathPos);
-                    if(backup.mario.deathTime!=0 || backup.mario.winTime!=0){
-                        break;
-                    }
-                }
-                if(backup.mario.deathTime!=0){
-                    diePerc++;
-                }
-                backup=null;
-            }
-            diePerc/=GlobalMetricOptions.numRollouts;
-            System.out.println(diePerc);*/
-            
 
             if (GlobalOptions.VisualizationOn) {
 
@@ -304,13 +255,13 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
                 ((LevelScene) scene).drawStringDropShadow(og, msg, 0, 8, 6);
 
                 msg = "";
-                if (action != null)
+                if (kp.isValid())
                 {
                     for (int i = 0; i < Environment.numberOfButtons; ++i)
-                        msg += (action[i]) ? scene.keysStr[i] : "      ";
+                        msg += (kp.isPressed(i)) ? scene.keysStr[i] : "      ";
                 }
                 else
-                    msg = "NULL";                    
+                    msg = "NULL";
                 drawString(og, msg, 6, 78, 1);
 
                 if (!this.hasFocus() && tick / 4 % 2 == 0) {
@@ -330,7 +281,7 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
                 ((LevelScene) scene).drawStringDropShadow(og, msg, 33, 5, 7);
 
                 if (width != 320 || height != 240) {
-                        g.drawImage(image, 0, 0, 640 * 2, 480 * 2, null);
+                    g.drawImage(image, 0, 0, 640 * 2, 480 * 2, null);
                 } else {
                     g.drawImage(image, 0, 0, null);
                 }
@@ -351,6 +302,9 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
             // Advance the frame
             frame++;
         }
+        // Remove redundant blank actions at the end of Mario's moves
+        marioMoves.rstrip(new KeyPress());
+
         marioRanOutOfTime = levelScene.getTimeLeft() <= 0;
 //=========
         evaluationInfo.agentType = agent.getClass().getSimpleName();
@@ -366,18 +320,19 @@ public class MarioComponent extends JComponent implements Runnable, /*KeyListene
         evaluationInfo.totalTimeGiven = levelScene.getTotalTime();
         evaluationInfo.numberOfGainedCoins = levelScene.mario.coins;
 //        evaluationInfo.totalNumberOfCoins   = -1 ; // TODO: total Number of coins.
-        evaluationInfo.totalActionsPerfomed = totalActionsPerfomed; // Counted during the play/simulation process
+        evaluationInfo.totalActionsPerformed = totalActionsPerfomed; // Counted during the play/simulation process
         evaluationInfo.jumpActionsPerformed = jumpActionsPerformed; // Counted during play/simulation
         evaluationInfo.hardJumpActionsPerformed = hardJumpActionsPerformed; // Counted during play/simulation
         evaluationInfo.mediumJumpActionsPerformed = mediumJumpActionsPerformed; // Counted during play/simulation
         evaluationInfo.easyJumpActionsPerformed = easyJumpActionsPerformed; // Counted during play/simulation
         evaluationInfo.trivialJumpActionsPerformed = trivialJumpActionsPerformed; // Counted during play/simulation
 
-        evaluationInfo.totalFramesPerfomed = frame;
+        evaluationInfo.totalFrames = frame;
         evaluationInfo.marioDiedToFall = marioDiedToFall;
         evaluationInfo.marioDiedToEnemy = marioDiedToEnemy;
         evaluationInfo.marioRanOutOfTime = marioRanOutOfTime;
         evaluationInfo.marioMode = levelScene.mario.getMode();
+        evaluationInfo.marioMoves = marioMoves;
         evaluationInfo.killsTotal = levelScene.mario.world.killedCreaturesTotal;
 //        evaluationInfo.Memo = "Number of attempt: " + Mario.numberOfAttempts;
         if (agent instanceof ServerAgent && levelScene.mario.keys != null /*this will happen if client quits unexpectedly in case of Server mode*/)
