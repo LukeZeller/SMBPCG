@@ -198,24 +198,34 @@ with torch.no_grad():
     values, indices = torch.max(tag_scores, 1)
     tempLevel = []
     pertLevel = []
+    realLevel = []
     for j in tqdm(range(len(indices))):
         tempLevel.append(revTileMapping[indices[j].item()])
         pertLevel.append(testing_data[0][0][j])
+        realLevel.append(testing_data[0][1][j])
     tempLevel = np.reshape(np.array(tempLevel), (-1, 14))
     tempLevel = tempLevel.transpose((1, 0))
     pertLevel = np.reshape(np.array(pertLevel), (-1, 14))
     pertLevel = pertLevel.transpose((1, 0))
+    realLevel = np.reshape(np.array(pertLevel), (-1, 14))
+    realLevel = pertLevel.transpose((1, 0))
     fixedLevel = ""
     perturbedLevel = ""
+    rLevel = ""
     for i in range(len(tempLevel)):
         for j in range(len(tempLevel[0])):
             fixedLevel += tempLevel[i][j]
             perturbedLevel += pertLevel[i][j]
+            rLevel += realLevel[i][j]
         fixedLevel += "\n"
         perturbedLevel += "\n"
-    file = open("fixed_level", 'w')
-    file1 = open("perturbed_level", 'w')
+        rLevel += "\n"
+    file = open("fixed_level.txt", 'w')
+    file1 = open("perturbed_level.txt", 'w')
+    file2 = open("og_evel.txt", 'w')
     file.write(fixedLevel)
     file1.write(perturbedLevel)
+    file2.write(rLevel)
     file1.close()
     file.close()
+    file2.close()
