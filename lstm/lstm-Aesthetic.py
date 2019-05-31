@@ -22,9 +22,9 @@ parser.add_argument('--hdim', type=int, default=256,
                     help='number of hidden dimensions')
 parser.add_argument('--tsize', type=int, default=100,
                     help='number of training sets create per level')
-parser.add_argument('--probp', type=int, default=60,
+parser.add_argument('--probp', type=int, default=30,
                     help='prob a pipe tile is changed')
-parser.add_argument('--probs', type=int, default=10,
+parser.add_argument('--probs', type=int, default=30,
                     help='prob a stair tile is changed')
 opt = parser.parse_args()
 
