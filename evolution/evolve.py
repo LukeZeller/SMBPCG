@@ -116,7 +116,6 @@ def run():
     print("Pool sz: " + str(os.cpu_count()))
 
     p_sz = 0
-    
     while not cma_es.stop():
         population = cma_es.ask()
         p_sz = len(population)
@@ -126,8 +125,8 @@ def run():
             print(" ---- Generation " + str(gen_itr) + " ----")
             fits = p.map(_fitness, population)
             print("GEN FITS: " + str(fits))
-            print("GEN AVG: " + str(sum(fits)/len(fits)))
-            avg_fits.append(sum(fits)/len(fits))
+            print("GEN AVG: " + str(sum(fits) / len(fits)))
+            avg_fits.append(sum(fits) / len(fits))
             cma_es.tell(population, fits)
             for i in range(p_sz):
                 if fits[i] <= best_fitness:

@@ -38,7 +38,7 @@ def proxy_test():
 java_level_cache = {}
 def _get_java_level(level):
     if level in java_level_cache:
-        return java_level_cache[level]
+        return java_level_cache[level].copy()
     
     # j_level_arraylist is a Java ArrayList of rows in the level
     j_level_list = _J_ArrayList(level.height)
@@ -53,7 +53,7 @@ def _get_java_level(level):
             
     res = _J_LevelParser.createLevelJson(j_level_list)
     java_level_cache[level] = res
-    return res
+    return res.copy()
 
 def _instantiated_simulation_handler(level, agent, visualize):
     if level is None:

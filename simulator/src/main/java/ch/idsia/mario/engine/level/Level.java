@@ -125,6 +125,32 @@ public class Level implements Cloneable
     		clone.add((int[]) item.clone());
     	return l;
     }
+
+    public Level copy() {
+        try {
+            Level cloned = new Level(width, height);
+            cloned.modifiedMapTiles = new ArrayList<>(modifiedMapTiles.size());
+            for(int[] item: modifiedMapTiles)
+                cloned.modifiedMapTiles.add(item.clone());
+            for (int row = 0; row < width; row++) {
+                for (int col = 0; col < height; col++) {
+                    cloned.map[row][col] = map[row][col];
+                    cloned.data[row][col] = this.data[row][col];
+                    cloned.observation[row][col] = this.observation[row][col];
+                    cloned.spriteTemplates[row][col] =  this.spriteTemplates[row][col] != null ?
+                            (SpriteTemplate) this.spriteTemplates[row][col].clone() :
+                            null;
+                }
+            }
+            cloned.xExit = xExit;
+            cloned.yExit = yExit;
+            return cloned;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException();
+        }
+    }
         
     public static void loadBehaviors(DataInputStream dis) throws IOException
     {
