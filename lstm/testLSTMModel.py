@@ -36,6 +36,8 @@ tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
                "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
 piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 pipe = ["<", ">", "[", "]"]
+revTileMapping = {v: k for k, v in tileMapping.items()}
+
 
 EMBEDDING_DIM = opt.edim
 HIDDEN_DIM = opt.hdim
@@ -188,3 +190,32 @@ with torch.no_grad():
           str(round(fullAccuracy, 2)) + "%")
     for row in tilesIncorrect:
         print(row)
+
+
+with torch.no_grad():
+    inputs = prepare_sequence(testing_data[0][0], tileMapping)
+    tag_scores = model(inputs)
+    values, indices = torch.max(tag_scores, 1)
+    tempLevel = []
+    pertLevel = []
+    for j in tqdm(range(len(indices))):
+        tempLevel.append(revTileMapping[indices[j].item()])
+        pertLevel.append(testing_data[0][0][j])
+    tempLevel = np.reshape(np.array(tempLevel), (-1, 14))
+    tempLevel = tempLevel.transpose((1, 0))
+    pertLevel = np.reshape(np.array(pertLevel), (-1, 14))
+    pertLevel = pertLevel.transpose((1, 0))
+    fixedLevel = ""
+    perturbedLevel = ""
+    for i in range(len(tempLevel)):
+        for j in range(len(tempLevel[0])):
+            fixedLevel += tempLevel[i][j]
+            perturbedLevel += pertLevel[i][j]
+        fixedLevel += "\n"
+        perturbedLevel += "\n"
+    file = open("fixed_level", 'w')
+    file1 = open("perturbed_level", 'w')
+    file.write(fixedLevel)
+    file1.write(perturbedLevel)
+    file1.close()
+    file.close()
