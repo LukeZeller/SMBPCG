@@ -162,7 +162,12 @@ def prepare_data():
 
 
 training_data, testing_data = prepare_data()
-
+for i, data in enumerate(training_data):
+    swapi = random.randrange(i, len(training_data))
+    training_data[i], training_data[swapi] = training_data[swapi], data
+for i, data in enumerate(testing_data):
+    swapi = random.randrange(i, len(testing_data))
+    testing_data[i], testing_data[swapi] = testing_data[swapi], data
 
 with torch.no_grad():
     correct = 0
@@ -207,8 +212,8 @@ with torch.no_grad():
     tempLevel = tempLevel.transpose((1, 0))
     pertLevel = np.reshape(np.array(pertLevel), (-1, 14))
     pertLevel = pertLevel.transpose((1, 0))
-    realLevel = np.reshape(np.array(pertLevel), (-1, 14))
-    realLevel = pertLevel.transpose((1, 0))
+    realLevel = np.reshape(np.array(realLevel), (-1, 14))
+    realLevel = realLevel.transpose((1, 0))
     fixedLevel = ""
     perturbedLevel = ""
     rLevel = ""
