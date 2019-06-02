@@ -17,7 +17,7 @@ pip install tqdm
 Java 1.8 is required as it is used for the Mario AI compeition 2009 A* agent made by Robin Baumgarten, [A* agent](https://github.com/RobinB/mario-astar-robinbaumgarten).
 ### Installing
 
-## Runing
+## Running
 
 
 ## Authors
