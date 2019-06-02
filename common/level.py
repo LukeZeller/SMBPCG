@@ -11,36 +11,37 @@ DEFAULT_LEVEL_HEIGHT = 14
 DEFAULT_LEVEL_WIDTH = 28
 
 char_int_map = {
-    'X' : 0,
-    'S' : 1,
-    '-' : 2,
-    '?' : 3,
-    'Q' : 4,
-    'E' : 5,
-    '<' : 6,
-    '>' : 7,
-    '[' : 8,
-    ']' : 9,
-    'o' : 10,
-    'B' : 11,
-    'b' : 12
+    'X': 0,
+    'S': 1,
+    '-': 2,
+    '?': 3,
+    'Q': 4,
+    'E': 5,
+    '<': 6,
+    '>': 7,
+    '[': 8,
+    ']': 9,
+    'o': 10,
+    'B': 11,
+    'b': 12
 }
 
 int_char_map = {
-    0 : 'X',
-    1 : 'S',
-    2 : '-',
-    3 : '?',
-    4 : 'Q',
-    5 : 'E',
-    6 : '<',
-    7 : '>',
-    8 : '[',
-    9 : ']',
-    10 : 'o',
-    11 : 'B',
-    12 : 'b'
+    0: 'X',
+    1: 'S',
+    2: '-',
+    3: '?',
+    4: 'Q',
+    5: 'E',
+    6: '<',
+    7: '>',
+    8: '[',
+    9: ']',
+    10: 'o',
+    11: 'B',
+    12: 'b'
 }
+
 
 def load_level_from_json(json_fname):
     with open(config_mgr.get_absolute_path(
@@ -48,11 +49,12 @@ def load_level_from_json(json_fname):
         level_json = json.loads(json_f.read())
     return Level(data=level_json)
 
+
 class Level(object):
     # Initialize Level object with width / height or data
     # Note: If data array is present, width / height parameters are ignored.
     #       In this case, Level should be initialized as Level(data = ...)
-    def __init__(self, width = DEFAULT_LEVEL_WIDTH, height = DEFAULT_LEVEL_HEIGHT, data = None):
+    def __init__(self, width=DEFAULT_LEVEL_WIDTH, height=DEFAULT_LEVEL_HEIGHT, data=None):
         if data is not None:
             self.__initialize_from_data(data)
         else:
@@ -91,7 +93,7 @@ class Level(object):
     def get_tile_int(self, x, y):
         self.__bounds_check(x, y)
         return int(self.__tiles[y, x])
-    
+
     def set_tile_char(self, x, y, tile_c):
         self.__bounds_check(x, y)
         if tile_c not in char_int_map:

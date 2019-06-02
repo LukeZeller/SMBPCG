@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import torch
 import torch.nn as nn
 
+
 class MLP_G(nn.Module):
     def __init__(self, isize, nz, nc, ngf, ngpu):
         super(MLP_G, self).__init__()

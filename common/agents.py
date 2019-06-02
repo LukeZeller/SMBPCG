@@ -1,8 +1,7 @@
 from config import config_mgr
+import jnius
 
 config_mgr.setup_environment()
-
-import jnius
 
 # print(config_mgr.os.environ['CLASSPATH'])
 
@@ -19,14 +18,18 @@ _J_ForcedActionAgent = jnius.autoclass(FORCED_AGENT_CLASS)
 
 _human_agents = [_J_HumanKeyboardAgent]
 
+
 def create_astar_agent():
     return _J_AStarAgent()
+
 
 def create_human_agent():
     return _J_HumanKeyboardAgent()
 
+
 def create_forced_agent(moves):
     return _J_ForcedActionAgent(moves)
+
 
 def is_human(agent):
     return any(map(lambda agent_type: isinstance(agent, agent_type), _human_agents))
