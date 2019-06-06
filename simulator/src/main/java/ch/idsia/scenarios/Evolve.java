@@ -8,7 +8,6 @@ import ch.idsia.ai.tasks.ProgressTask;
 import ch.idsia.ai.tasks.Task;
 import ch.idsia.tools.CmdLineOptions;
 import ch.idsia.tools.EvaluationOptions;
-import wox.serial.Easy;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -61,7 +60,13 @@ public class Evolve {
 //                LOGGER.println("trying: " + result, LOGGER.VERBOSE_MODE.INFO);
                 options.setVisualization(false);
                 options.setMaxFPS(true);
-                Easy.save (es.getBests()[0], "evolved.xml");
+                /*
+                Removing Wox dependency -- this class is no longer useful, but we don't need it.
+                Could refactor in future if desired. -Luke
+                */
+                System.err.println("Wox has been removed as a dependency from this project -- result will not "
+                        + "be serialized/saved.");
+                // Easy.save (es.getBests()[0], "evolved.xml");
                 if (result > 4000)
                     break; // Go to next difficulty.
             }

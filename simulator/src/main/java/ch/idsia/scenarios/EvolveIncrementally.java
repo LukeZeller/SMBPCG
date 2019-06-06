@@ -8,7 +8,6 @@ import ch.idsia.ai.ea.ES;
 import ch.idsia.ai.tasks.MultiSeedProgressTask;
 import ch.idsia.tools.CmdLineOptions;
 import ch.idsia.tools.EvaluationOptions;
-import wox.serial.Easy;
 
 /**
  * Created by IntelliJ IDEA.
@@ -58,7 +57,13 @@ public class EvolveIncrementally {
                 double result = task.evaluate(a)[0];
                 options.setVisualization(false);
                 options.setMaxFPS(true);
-                Easy.save (es.getBests()[0], "evolved.xml");
+                /*
+                Removing Wox dependency -- this class is no longer useful, but we don't need it.
+                Could refactor in future if desired. -Luke
+                */
+                System.err.println("Wox has been removed as a dependency from this project -- result will not "
+                        + "be serialized/saved.");
+                // Easy.save (es.getBests()[0], "evolved.xml");
                 if (result > 4000) {
                     initial = es.getBests()[0];
                     break; // Go to next difficulty.

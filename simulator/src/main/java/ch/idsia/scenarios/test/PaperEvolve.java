@@ -9,7 +9,6 @@ import ch.idsia.ai.agents.ai.*;
 import ch.idsia.ai.agents.Agent;
 import ch.idsia.ai.agents.AgentsPool;
 import ch.idsia.scenarios.Stats;
-import wox.serial.Easy;
 
 /**
  * Created by IntelliJ IDEA.
@@ -45,7 +44,13 @@ public class PaperEvolve {
             es.nextGeneration();
             double bestResult = es.getBestFitnesses()[0];
             System.out.println("Generation " + gen + " diff " + difficulty + "  best " + bestResult);
-            Easy.save (es.getBests()[0], fileName);
+            /*
+            Removing Wox dependency -- this class is no longer useful, but we don't need it.
+            Could refactor in future if desired. -Luke
+            */
+            System.err.println("Wox has been removed as a dependency from this project -- result will not "
+                    + "be serialized/saved.");
+            // Easy.save (es.getBests()[0], fileName);
             if (bestResult > 4000) {
                 difficulty++;
                 options.setLevelDifficulty(difficulty);
