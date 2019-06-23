@@ -2,27 +2,24 @@ import functools
 import math
 from multiprocessing import Pool
 import os
-import time
-
 import cma
 
 from common import constants
+from common.constants import DEBUG_PRINT
 from common.simulation import SimulationProxy
 from evolution.feasible_shifts import number_of_shifts_and_jumps
 from gan import generator_client
 
+from typing import NamedTuple
 
-HARD_JUMP_WEIGHT = 10
-MEDIUM_JUMP_WEIGHT = 5
-EASY_JUMP_WEIGHT = 3
-TRIVIAL_JUMP_WEIGHT = 1
-PENALTY_FOR_FAILURE = 1000
-
-REPEAT_REWARD = 400
+class Hyperparameters(NamedTuple):
+    SUCCESS_COEFFICIENT : float = 0.0025
+    FAILURE_COEFFICIENT : float = 1.0000
+    ALL_FAILURE_COEFFICIENT : float = 1.0000 
 
 # Number of times the A* agent is invoked on each sample during evolution
-TRIALS_PER_SAMPLE = 20
-MAX_ITERS = 30
+TRIALS_PER_SAMPLE = 1
+MAX_ITERS = 1
 PARALLELIZE_TRIALS = False
 
 # TODO: Generalize and make magic numbers into parameters w/ defaults
@@ -32,9 +29,9 @@ PARALLELIZE_TRIALS = False
 
 cma_es = None
 
-def _fitness(latent_vector):
-    generate.load_generator()
-    level = generate.apply_generator(latent_vector)
+def _fitness(latent_vector, hp = Hyperparameters()):
+    generator_client.load_generator()
+    level = generator_client.apply_generator(latent_vector)
 
     min_fit = constants.INF
     fits = []
@@ -42,42 +39,48 @@ def _fitness(latent_vector):
 
     if PARALLELIZE_TRIALS:
         with Pool() as p:
-            fit_fn_with_info = functools.partial(_fitness_function, ret_passed_bool = True)
+            fit_fn_with_info = functools.partial(_fitness_function, ret_passed_bool = True, hp = hp)
             fit_data = p.map(fit_fn_with_info, [level for _ in range(TRIALS_PER_SAMPLE)])
             fits = [elem[0] for elem in fit_data]
             passed = [1 if elem[1] else 0 for elem in fit_data]
 
-            ### TEST OUTPUT ###
-            print("Trial fitnesses: " + str(fits))
-            print("Passed trial indicators: " + str(passed))
+            if DEBUG_PRINT:
+                print("Trial fitnesses: " + str(fits))
+                print("Passed trial indicators: " + str(passed))
     else:
         for t_itr in range(TRIALS_PER_SAMPLE):
-            trial_fit, level_passed = _fitness_function(level, True)
+            trial_fit, level_passed = _fitness_function(level, True, hp)
             
-            ### TEST ###
-            print("Trial " + str(t_itr) + " Fitness: " + str(trial_fit))
+            if DEBUG_PRINT:
+                print("Trial " + str(t_itr) + " Fitness: " + str(trial_fit))
         
             fits.append(trial_fit)
             passed.append(1 if level_passed else 0)
             min_fit = min(trial_fit, min_fit)
 
     passed_cnt = sum(passed)
+    failed_pct = float(TRIALS_PER_SAMPLE - passed_cnt) / TRIALS_PER_SAMPLE
     ### TEST ###
-    print("PASSED COUNT: " + str(passed_cnt))
+    if DEBUG_PRINT:
+        print("PASSED COUNT: " + str(passed_cnt))
     
     if passed_cnt > 0:
         avg_passed_fit = sum([fits[i] * passed[i] for i in range(TRIALS_PER_SAMPLE)]) / passed_cnt
-        pct_failed = 1 - passed_cnt / TRIALS_PER_SAMPLE
-        avg_passed_fit -= REPEAT_REWARD * pct_failed
-        print("AVG PASSED FIT: " + str(avg_passed_fit))
-        return avg_passed_fit
+        
+        scaled_fitness_value = hp.SUCCESS_COEFFICIENT * avg_passed_fit
+        scaled_repeat_reward = -1 * hp.FAILURE_COEFFICIENT * failed_pct
+        if DEBUG_PRINT:
+            print("AVG PASSED FIT: " + str(avg_passed_fit))
+        return scaled_fitness_value + scaled_repeat_reward
     else:
         avg_fit = sum(fits) / TRIALS_PER_SAMPLE
-        print("AVG FIT: " + str(avg_fit))
-        return avg_fit
+        if DEBUG_PRINT:
+            print("AVG FIT: " + str(avg_fit))
+        scaled_fitness_value = hp.ALL_FAILURE_COEFFICIENT * avg_fit
+        return scaled_fitness_value
 
 # Sample fitness function based on EvalutionInfo information
-def _fitness_function(level, ret_passed_bool = False):
+def _fitness_function(level, ret_passed_bool = False, hp = Hyperparameters()):
     sim_proxy = SimulationProxy(level)
     sim_proxy.invoke()
     info = sim_proxy.eval_info
@@ -87,7 +90,7 @@ def _fitness_function(level, ret_passed_bool = False):
         difficulty = _calculate_difficulty_for_failure(info)
     else:
         difficulty = _calculate_difficulty_for_success(info, level)
-    fitness = -difficulty
+    fitness = -difficulty if passed else difficulty
     
     if ret_passed_bool:
         return fitness, passed
@@ -100,17 +103,22 @@ def _calculate_difficulty_for_failure(info):
 
 def _calculate_difficulty_for_success(info, level):
     num_shifts, num_jumps = number_of_shifts_and_jumps(info, level)
-    print("Shifts: ", num_shifts)
-    print("Num jumps: ", num_jumps)
-    average_number_of_shifts_per_jump = float(num_shifts) / num_jumps
+    if DEBUG_PRINT:
+        print("Shifts: ", num_shifts)
+        print("Num jumps: ", num_jumps)
+    if num_jumps == 0:
+        average_number_of_shifts_per_jump = float('inf')
+    else:
+        average_number_of_shifts_per_jump = float(num_shifts) / num_jumps
     # The more that the jumps can be shifted, the easier the level is
     return 1 / average_number_of_shifts_per_jump
 
-def run():
+def run(hyperparameters = Hyperparameters()):
+    fitness = functools.partial(_fitness, hp = hyperparameters)
+    
     cma_es = cma.CMAEvolutionStrategy([0] * 32, 1 / math.sqrt(32), {'maxiter':MAX_ITERS})
 
     avg_fits = []
-    #cma_es.optimize(_fitness)
     gen_itr = 0
 
     print("Pool sz: " + str(os.cpu_count()))
@@ -122,10 +130,11 @@ def run():
         best_lv = None
         best_fitness = constants.INF
         with Pool() as p:
-            print(" ---- Generation " + str(gen_itr) + " ----")
-            fits = p.map(_fitness, population)
-            print("GEN FITS: " + str(fits))
-            print("GEN AVG: " + str(sum(fits) / len(fits)))
+            fits = list(map(fitness, population))
+            if DEBUG_PRINT:
+                print(" ---- Generation " + str(gen_itr) + " ----")
+                print("GEN FITS: " + str(fits))
+                print("GEN AVG: " + str(sum(fits) / len(fits)))
             avg_fits.append(sum(fits) / len(fits))
             cma_es.tell(population, fits)
             for i in range(p_sz):
@@ -134,22 +143,24 @@ def run():
                     best_fitness = fits[i]
             gen_itr += 1
 
-    print("ALL GEN AVG FITS: " + str(avg_fits))
-    
-    print(" ---- CMA RESULTS --- ")
-    print(" --- From Framework --- ")
-    cma_es.result_pretty()
-    print(" --- From Recalculation --- ")
-    cma_es.best.get()
-    print(type(cma_es.best.get()))
+    if DEBUG_PRINT:
+        print("ALL GEN AVG FITS: " + str(avg_fits))
+        
+        print(" ---- CMA RESULTS --- ")
+        print(" --- From Framework --- ")
+        cma_es.result_pretty()
+        print(" --- From Recalculation --- ")
+        cma_es.best.get()
+        print(type(cma_es.best.get()))
 
     best_lv_f = cma_es.best.get()[0]
 
-    print("Best Latent Vector (According to framework): " + ', '.join(str(best_lv_f).split()))
-    print("Corresponding fitness: " + str(_fitness(best_lv_f)))
-
-    print("Best Latent Vector (According to manual bookkeeping): " + ', '.join(str(best_lv).split()))
-    print("Corresponding fitness: " + str(_fitness(best_lv)))
-    print("Saved best fitness: " + str(best_fitness))
+    if DEBUG_PRINT:
+        print("Best Latent Vector (According to framework): " + ', '.join(str(best_lv_f).split()))
+        print("Corresponding fitness: " + str(fitness(best_lv_f)))
     
-    return generate.apply_generator(best_lv_f)
+        print("Best Latent Vector (According to manual bookkeeping): " + ', '.join(str(best_lv).split()))
+        print("Corresponding fitness: " + str(fitness(best_lv)))
+        print("Saved best fitness: " + str(best_fitness))
+    print("Type of best_lv_f: ", type(best_lv_f))   
+    return generator_client.apply_generator(best_lv_f)

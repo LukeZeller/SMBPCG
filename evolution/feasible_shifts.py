@@ -1,4 +1,4 @@
-from common.constants import KEY_JUMP
+from common.constants import KEY_JUMP, DEBUG_PRINT
 from evolution.check_moves import can_complete, simulate_level_with_moves
 from multiprocessing import Pool
 from functools import partial
@@ -7,21 +7,24 @@ import time
 def number_of_shifts_and_jumps(info, level):
     moves = info.marioMoves
     jump_starts, jump_ends = _get_jumps(moves)
-    print("Before removing redundant")
-    print(jump_starts, jump_ends)
+    if DEBUG_PRINT:
+        print("Before removing redundant")
+        print(jump_starts, jump_ends)
     moves, jump_starts, jump_ends = _removed_redundant_jumps(level, 
                                                              moves, 
                                                              jump_starts, 
                                                              jump_ends)
-    print("After removing redundant")
-    print(jump_starts, jump_ends)
+    if DEBUG_PRINT:
+        print("After removing redundant")
+        print(jump_starts, jump_ends)
     return _calculate_number_of_shifts_and_jumps(level, moves, jump_starts, jump_ends)
 
 def _get_jumps(moves):
     jump_starts = []
     jump_ends = []
     jump_previously_pressed = False
-    print("Moves size: ", moves.size())
+    if DEBUG_PRINT:
+        print("Moves size: ", moves.size())
     for frame in range(moves.size()):
         keys_pressed = moves.get(frame)
         jump_currently_pressed = keys_pressed.isPressed(KEY_JUMP)
@@ -65,7 +68,8 @@ def _calculate_number_of_shifts_and_jumps(level, moves, jump_starts, jump_ends):
     num_shifts = sum(num_shifts_per_jump)
         
     end_time = time.perf_counter()
-    print("Time taken (s): ", end_time - start_time)
+    if DEBUG_PRINT:
+        print("Time taken (s): ", end_time - start_time)
     
     return num_shifts, num_jumps
 

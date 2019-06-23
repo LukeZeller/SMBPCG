@@ -94,7 +94,6 @@ class _EvaluationInfoProxy(object):
     def level_passed(self):
         return self.lengthOfLevelPassedPhys == constants.LEVEL_LENGTH
 
-        
 class SimulationProxy(object):
     @staticmethod
     def from_json_file(json_fname, human_tested = False):
