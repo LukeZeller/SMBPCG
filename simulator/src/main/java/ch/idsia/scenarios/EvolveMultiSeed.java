@@ -8,7 +8,6 @@ import ch.idsia.ai.tasks.MultiSeedProgressTask;
 import ch.idsia.ai.agents.ai.SimpleMLPAgent;
 import ch.idsia.ai.agents.Agent;
 import ch.idsia.ai.agents.AgentsPool;
-import wox.serial.Easy;
 
 /**
  * Created by IntelliJ IDEA.
@@ -53,7 +52,13 @@ public class EvolveMultiSeed {
                 double result = task.evaluate(a)[0];
                 options.setVisualization(false);
                 options.setMaxFPS(true);
-                Easy.save (es.getBests()[0], "evolved.xml");
+                /*
+                Removing Wox dependency -- this class is no longer useful, but we don't need it.
+                Could refactor in future if desired. -Luke
+                */
+                System.err.println("Wox has been removed as a dependency from this project -- result will not "
+                        + "be serialized/saved.");
+                // Easy.save (es.getBests()[0], "evolved.xml");
                 if (result > 4000) {
                     break; //finished
                 }

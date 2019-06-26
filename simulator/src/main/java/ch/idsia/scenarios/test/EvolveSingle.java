@@ -7,7 +7,6 @@ import ch.idsia.ai.ea.ES;
 import ch.idsia.ai.tasks.ProgressTask;
 import ch.idsia.ai.agents.ai.SimpleMLPAgent;
 import ch.idsia.scenarios.Stats;
-import wox.serial.Easy;
 
 /**
  * Created by IntelliJ IDEA.
@@ -39,7 +38,13 @@ public class EvolveSingle {
             es.nextGeneration();
             double bestResult = es.getBestFitnesses()[0];
             System.out.println("Generation " + gen + " best " + bestResult);
-            Easy.save (es.getBests()[0], fileName);
+            /*
+            Removing Wox dependency -- this class is no longer useful, but we don't need it.
+            Could refactor in future if desired. -Luke
+            */
+            System.err.println("Wox has been removed as a dependency from this project -- result will not "
+                    + "be serialized/saved.");
+            // Easy.save (es.getBests()[0], fileName);
         }
         Stats.main(new String[]{fileName, "1"});
     }

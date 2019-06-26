@@ -1,7 +1,5 @@
 package ch.idsia.ai.agents;
 
-import wox.serial.Easy;
-
 import java.util.*;
 
 /**
@@ -28,12 +26,16 @@ public final class AgentsPool
     public static Agent load (String name) {
         Agent agent;
         try {
-            agent = (Agent) Class.forName (name).newInstance ();
+            // Replace deprecated call Class.newInstance(); with recommended
+            // call Class.getDeclaredConstructor().newInstance(); -Luke
+            agent = (Agent) Class.forName(name).getDeclaredConstructor().newInstance();
         }
+        /* Wox factored out to remove java8 dependency so this block is removed -Luke
         catch (ClassNotFoundException e) {
             System.out.println (name + " is not a class name; trying to load a wox definition with that name.");
             agent = (Agent) Easy.load (name);
         }
+         */
         catch (Exception e) {
             e.printStackTrace ();
             agent = null;

@@ -29,10 +29,9 @@ generator = dcgan.DCGAN_G(imageSize, nz, features, ngf, ngpu, n_extra_layers)
 generator.load_state_dict(torch.load('netG_epoch_5000.pth', map_location=lambda storage, loc: storage))
 
 
-
 GROUND = 0
 ENEMY = 5
-PIPE = 6 #7, 8 9
+PIPE = 6  # 7, 8 9
 
 # generate_example = True
 
@@ -53,17 +52,18 @@ PIPE = 6 #7, 8 9
 def combine_images(generated_images):
     num = generated_images.shape[0]
     width = int(math.sqrt(num))
-    height = int(math.ceil(float(num)/width))
+    height = int(math.ceil(float(num) / width))
     shape = generated_images.shape[1:]
-    image = numpy.zeros((height*shape[0], width*shape[1],shape[2]), dtype=generated_images.dtype)
+    image = numpy.zeros((height * shape[0], width * shape[1], shape[2]), dtype=generated_images.dtype)
     for index, img in enumerate(generated_images):
-        i = int(index/width)
+        i = int(index / width)
         j = index % width
-        image[i*shape[0]:(i+1)*shape[0], j*shape[1]:(j+1)*shape[1]] = img
+        image[i * shape[0]:(i + 1) * shape[0], j * shape[1]:(j + 1) * shape[1]] = img
     return image
 
 
 batchSize = 1
+
 
 def gan_maximse_title_type(x):
     x = numpy.array(x)
@@ -72,9 +72,9 @@ def gan_maximse_title_type(x):
     levels = generator(Variable(latent_vector, volatile=True))
     levels.data = levels.data[:, :, :14, :28]
     im = levels.data.cpu().numpy()
-    im = numpy.argmax( im, axis = 1)
+    im = numpy.argmax(im, axis=1)
 
-    num_titles =  (len (im[im == PIPE]))
+    num_titles = (len(im[im == PIPE]))
     return 100.0 - num_titles
 
 
@@ -86,31 +86,32 @@ def gan_fitness_function(x):
                                               1)  # torch.from_numpy(lv)# torch.FloatTensor( torch.from_numpy(lv) )
     levels = generator(Variable(latent_vector, volatile=True))
     levels.data = levels.data[:, :, :14, :28]
-    #return solid_blocks_fraction(levels.data, 0.2)
-    return solid_blocks_fraction(levels.data, 0.4)*ground_blocks_fraction(levels.data,0.8)
+    # return solid_blocks_fraction(levels.data, 0.2)
+    return solid_blocks_fraction(levels.data, 0.4) * ground_blocks_fraction(levels.data, 0.8)
 
 
 def ground_blocks_fraction(data, frac):
     ground_count = sum(data[0, GROUND, 13, :] > 0)
-    #print(ground_count)
-    #print(ground_count- frac*28)
-    return math.sqrt(math.pow(ground_count - frac*28, 2))
+    # print(ground_count)
+    # print(ground_count- frac*28)
+    return math.sqrt(math.pow(ground_count - frac * 28, 2))
+
 
 def solid_blocks_fraction(data, frac):
     solid_block_count = len(data[data > 0.])
-    return math.sqrt(math.pow(solid_block_count - frac*14*28, 2))
+    return math.sqrt(math.pow(solid_block_count - frac * 14 * 28, 2))
 
 
 es = cma.CMAEvolutionStrategy(nz * [0], 0.5)
-#cma.CMAEvolutionStrategy(4 * [1], 1, {'seed':234})
-#'BoundaryHandler': 'BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``',
-#'bounds': '[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector',
+# cma.CMAEvolutionStrategy(4 * [1], 1, {'seed':234})
+# 'BoundaryHandler': 'BoundTransform  # or BoundPenalty, unused when ``bounds in (None, [None, None])``',
+# 'bounds': '[None, None]  # lower (=bounds[0]) and upper domain boundaries, each a scalar or a list/vector',
 
 es.optimize(gan_maximse_title_type)
 
 # es.result_pretty()
 best = numpy.array(es.best.get()[0])
-print ("BEST ", best)
+print("BEST ", best)
 print("Fitness", gan_fitness_function(best))
 
 
@@ -120,14 +121,14 @@ latent_vector = torch.FloatTensor(best).view(batchSize, nz, 1, 1)
 levels = generator(Variable(latent_vector, volatile=True))
 
 im = levels.data.cpu().numpy()
-im = im[:,:,:14,:28] #Cut of rest to fit the 14x28 tile dimensions
-im = numpy.argmax( im, axis = 1)
-#print(json.dumps(levels.data.tolist()))
+im = im[:, :, :14, :28]  # Cut of rest to fit the 14x28 tile dimensions
+im = numpy.argmax(im, axis=1)
+# print(json.dumps(levels.data.tolist()))
 print("Saving to file ")
-im = ( plt.get_cmap('rainbow')( im/float(features) ) )
-plt.imsave('fake_sample.png', combine_images(im) )
+im = (plt.get_cmap('rainbow')(im / float(features)))
+plt.imsave('fake_sample.png', combine_images(im))
 
-#vutils.save_image(levels.data, 'generated_samples.png')
+# vutils.save_image(levels.data, 'generated_samples.png')
 
 cma.plot()
 # raw_input("Press Enter to continue...")

@@ -9,7 +9,6 @@ import ch.idsia.ai.agents.ai.SmallMLPAgent;
 import ch.idsia.ai.agents.Agent;
 import ch.idsia.ai.agents.AgentsPool;
 import ch.idsia.scenarios.Stats;
-import wox.serial.Easy;
 
 /**
  * Created by IntelliJ IDEA.
@@ -44,7 +43,13 @@ public class EvolveWithChangingSeeds {
             double[] fitnesses = task.evaluate((Agent) bestEvolvable);
             System.out.printf("%.4f  %.4f  %.4f  %.4f  %.4f\n",
                     fitnesses[0], fitnesses[1], fitnesses[2], fitnesses[3], fitnesses[4]);
-            Easy.save (es.getBests()[0], fileName);
+            /*
+            Removing Wox dependency -- this class is no longer useful, but we don't need it.
+            Could refactor in future if desired. -Luke
+            */
+            System.err.println("Wox has been removed as a dependency from this project -- result will not "
+                    + "be serialized/saved.");
+            // Easy.save (es.getBests()[0], fileName);
         }
         Stats.main(new String[]{fileName, "0"});
     }
