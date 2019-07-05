@@ -1,10 +1,10 @@
-import jnius
 from config import config_mgr
 from common import constants
 import common.agents
 import common.level
 
 config_mgr.setup_environment()
+import jnius
 
 # --- Java class names ---
 EVALUATION_INFO_CLASS = 'ch.idsia.tools.EvaluationInfo'
