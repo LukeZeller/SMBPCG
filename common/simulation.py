@@ -137,6 +137,13 @@ class SimulationProxy(object):
 
     def invoke(self):
         self.__eval_info_proxy.set_instance(self.__j_sim_handler.invoke())
+        
+    def invokeTillStopped(self):
+        while True:
+            self.invoke()
+            inp = input("Type STOP to stop playing level")
+            if inp.upper() == "STOP":
+                break
 
     def __check_completion(self):
         if not self.__eval_info_proxy.has_instance:

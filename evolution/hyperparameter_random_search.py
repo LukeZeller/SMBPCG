@@ -27,19 +27,17 @@ def mutated(hp, step_size = 1):
         new_coordinates.append(val + delta[i])
     return Hyperparameters(*new_coordinates)
 
+def evaluate_level(level):
+    SimulationProxy(level = level, 
+                        agent = create_human_agent(), 
+                        visualize = True).invokeTillStopped()
+    rubric = input_rubric()
+    return rubric_score(rubric)
+
 def evaluate_hyperparameters(hp):
     print("Evaluating: ", hp)
     level = run(hp)
-    while True:
-        SimulationProxy(level = level, 
-                        agent = create_human_agent(), 
-                        visualize = True).invoke()
-        line = input("Type stop if you are done playing this level\n")
-        if line == 'stop':
-            break
-    
-    rubric = input_rubric()
-    return rubric_score(rubric)
+    return evaluate_level(level)
 
 def best_of(population, num):
     population_fitness = [(evaluate_hyperparameters(candidate), candidate) 

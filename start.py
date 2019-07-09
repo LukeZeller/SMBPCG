@@ -6,7 +6,7 @@ from common.simulation import SimulationProxy, play_1_1
 from common.agents import create_human_agent, create_astar_agent, create_forced_agent
 from evolution import evolve
 from gan import generator_client
-from evolution.hyperparameter_random_search import find_optimal_hyperparameters
+from evolution.hyperparameter_random_search import find_optimal_hyperparameters, evaluate_level
 
 
 def test_gan():
@@ -15,21 +15,16 @@ def test_gan():
     lv = np.random.uniform(-1, 1, 32)
 
     level = generator_client.apply_generator(lv)
-    SimulationProxy(level, agent=create_human_agent()).invoke()
+    print("Play level once")
+    SimulationProxy(level, agent=create_human_agent(), visualize = True).invoke()
 
     # For testing purposes
     print(lv)
-    
-    while True:
-        SimulationProxy(level = level, 
-                        agent = create_human_agent(), 
-                        visualize = True).invoke()
-        message = input("Enter STOP to end loop")
-        if message == "STOP":
-            break
+    print("Evaluate level:")
+    return evaluate_level(level)
 
 def test_fitness(random_latent_vector=True):
-    generate.load_generator()
+    generator_client.load_generator()
     if random_latent_vector:
         latent_vector = np.random.uniform(-1, 1, 32)
     else:
@@ -61,5 +56,6 @@ def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
 
 if __name__ == '__main__':
-    hp = test_gan()
-    print(hp)
+    rubric = test_gan()
+    print(rubric)
+    
