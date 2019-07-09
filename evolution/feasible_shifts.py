@@ -63,7 +63,7 @@ def _calculate_number_of_shifts_and_jumps(level, moves, jump_starts, jump_ends):
     start_time = time.perf_counter()
 
     num_jumps = len(jump_starts)
-    jump_index_to_num_shifts = partial(number_of_shifts_for_specific_jump,
+    jump_index_to_num_shifts = partial(_number_of_shifts_for_specific_jump,
                                        level,
                                        moves,
                                        jump_starts,
