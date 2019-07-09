@@ -14,7 +14,7 @@ def test_gan():
 
     lv = np.random.uniform(-1, 1, 32)
 
-    level = generate.apply_generator(lv)
+    level = generator_client.apply_generator(lv)
     SimulationProxy(level, agent=create_human_agent()).invoke()
 
     # For testing purposes
@@ -61,5 +61,5 @@ def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
 
 if __name__ == '__main__':
-    hp = test_evolution()
+    hp = test_gan()
     print(hp)
