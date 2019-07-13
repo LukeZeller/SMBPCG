@@ -42,11 +42,9 @@ def test_evolution(hyperparameters = evolve.Hyperparameters()):
     generator_client.load_generator()
     level = evolve.run()
     print(level.get_data())
-    while(True):
-        SimulationProxy(level = level, agent = create_human_agent(), visualize = True).invoke()
-        message = input("Enter STOP to end loop")
-        if message == "STOP":
-            break
+    SimulationProxy(level = level, 
+                    agent = create_human_agent(), 
+                    visualize = True).invokeTillStopped()
         
 def test_tuning():
     best = find_optimal_hyperparameters(0)
