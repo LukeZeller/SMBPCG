@@ -7,7 +7,9 @@ import cma
 from common import constants
 from common.constants import DEBUG_PRINT
 from common.simulation import SimulationProxy
-from evolution.feasible_shifts import number_of_shifts_and_jumps
+from evolution.level_difficulty.feasible_shifts import number_of_shifts_and_jumps
+from evolution.level_difficulty.difficulty \
+    import calculate_difficulty_for_failure, calculate_difficulty_for_success
 from gan import generator_client
 
 from typing import NamedTuple
@@ -15,7 +17,7 @@ from typing import NamedTuple
 class Hyperparameters(NamedTuple):
     SUCCESS_COEFFICIENT : float = 0.0025
     FAILURE_COEFFICIENT : float = 1.0000
-    ALL_FAILURE_COEFFICIENT : float = 1.0000 
+    ALL_FAILURE_COEFFICIENT : float = 1.0000
 
 # Number of times the A* agent is invoked on each sample during evolution
 TRIALS_PER_SAMPLE = 1
@@ -28,6 +30,24 @@ PARALLELIZE_TRIALS = False
 ### WARNING: CONSTRUCTION ZONE ###
 
 cma_es = None
+
+# Sample fitness function based on EvalutionInfo information
+def _fitness_function(level, ret_passed_bool = False, hp = Hyperparameters()):
+    sim_proxy = SimulationProxy(level)
+    sim_proxy.invoke()
+    info = sim_proxy.eval_info
+    passed = info.level_passed()
+    
+    if not passed:
+        difficulty = calculate_difficulty_for_failure(info)
+    else:
+        difficulty = calculate_difficulty_for_success(info, level)
+    fitness = -difficulty if passed else difficulty
+    
+    if ret_passed_bool:
+        return fitness, passed
+    else:
+        return fitness
 
 def _fitness(latent_vector, hp = Hyperparameters()):
     generator_client.load_generator()
@@ -78,40 +98,6 @@ def _fitness(latent_vector, hp = Hyperparameters()):
             print("AVG FIT: " + str(avg_fit))
         scaled_fitness_value = hp.ALL_FAILURE_COEFFICIENT * avg_fit
         return scaled_fitness_value
-
-# Sample fitness function based on EvalutionInfo information
-def _fitness_function(level, ret_passed_bool = False, hp = Hyperparameters()):
-    sim_proxy = SimulationProxy(level)
-    sim_proxy.invoke()
-    info = sim_proxy.eval_info
-    passed = info.level_passed()
-    
-    if not passed:
-        difficulty = _calculate_difficulty_for_failure(info)
-    else:
-        difficulty = _calculate_difficulty_for_success(info, level)
-    fitness = -difficulty if passed else difficulty
-    
-    if ret_passed_bool:
-        return fitness, passed
-    else:
-        return fitness
-    
-def _calculate_difficulty_for_failure(info):
-    fraction_of_level_completed = float(info.lengthOfLevelPassedPhys) / constants.LEVEL_LENGTH
-    return 1 - fraction_of_level_completed
-
-def _calculate_difficulty_for_success(info, level):
-    num_shifts, num_jumps = number_of_shifts_and_jumps(info, level)
-    if DEBUG_PRINT:
-        print("Shifts: ", num_shifts)
-        print("Num jumps: ", num_jumps)
-    if num_jumps == 0:
-        average_number_of_shifts_per_jump = float('inf')
-    else:
-        average_number_of_shifts_per_jump = float(num_shifts) / num_jumps
-    # The more that the jumps can be shifted, the easier the level is
-    return 1 / average_number_of_shifts_per_jump
 
 def run(hyperparameters = Hyperparameters()):
     fitness = functools.partial(_fitness, hp = hyperparameters)

@@ -1,5 +1,5 @@
 from common.constants import KEY_JUMP, DEBUG_PRINT
-from evolution.check_moves import can_complete, simulate_level_with_moves
+from evolution.level_difficulty.check_moves import can_complete, simulate_level_with_moves
 from multiprocessing import Pool
 from functools import partial
 import time

@@ -6,8 +6,9 @@ from common.simulation import SimulationProxy, play_1_1
 from common.agents import create_human_agent, create_astar_agent, create_forced_agent
 from evolution import evolve
 from gan import generator_client
-from evolution.hyperparameter_random_search import find_optimal_hyperparameters, evaluate_level
-
+import matplotlib.pyplot as plt
+from evolution.human_evaluation.hyperparameter_random_search \
+    import PopulationGenerator, HyperparameterCache
 
 def test_gan():
     generator_client.load_generator()
@@ -45,15 +46,51 @@ def test_evolution(hyperparameters = evolve.Hyperparameters()):
     SimulationProxy(level = level, 
                     agent = create_human_agent(), 
                     visualize = True).invokeTillStopped()
-        
+       
 def test_tuning():
-    best = find_optimal_hyperparameters(0)
-    return best
+    mock_evaluation = lambda hp: hp[0]
+    popgen = PopulationGenerator(evaluator = mock_evaluation, 
+                                 population_size = 2)
+    cache = HyperparameterCache(generator = popgen)
+    return cache
+
+def plot_tuning():
+    mock_evaluation = lambda hp: hp[0]
+    
+    xs, fitnesses, hp0s, hp1s, hp2s, magnitudes, sums = [], [], [], [], [], [], []
+    names = ["fitness", 
+             "0th position", 
+             "1st position", 
+             "2nd position", 
+             "magnitude", 
+             "sums"]
+    
+    popgen = PopulationGenerator(evaluator = mock_evaluation)
+    cache = HyperparameterCache(generator = popgen)
+    for generation in range(2):
+        candidate, fitness = tuple(*cache.best())
+        
+        xs.append(generation)
+        fitnesses.append(fitness)
+        hp0s.append(candidate[0])
+        hp1s.append(candidate[1])
+        hp2s.append(candidate[2])
+        sums.append(sum(candidate))
+        magnitudes.append(np.linalg.norm(candidate))
+        
+        cache.get_next_generation()
+    
+    for i, ys in enumerate([fitnesses, hp0s, hp1s, hp2s, magnitudes, sums]):
+        fig, ax = plt.subplots()
+        ax.plot(xs, ys)
+        ax.set_title(names[i])
+        fig.show()
+    return cache
 
 def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
 
 if __name__ == '__main__':
-    rubric = test_gan()
-    print(rubric)
+    cache = test_tuning()
+    
     
