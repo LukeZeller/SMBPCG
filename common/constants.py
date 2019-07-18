@@ -15,3 +15,5 @@ KEY_SPEED = 4
 NUMBER_OF_BUTTONS = 5
 
 DEBUG_PRINT = False
+
+DEFAULT_HYPERPARAMETER_CACHE_FILE = "evolution/human_evaluation/cache.json"
