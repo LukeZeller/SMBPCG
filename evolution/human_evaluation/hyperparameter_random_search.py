@@ -87,12 +87,10 @@ CURRENT = "CURRENT"
 OLD = "OLD"
 class HyperparameterCache:
     def __init__(self, 
-                 storage_file = "evolution/human_evaluation/cache.json",
-                 generator = None):
+                 storage_file,
+                 generator):
         self.storage_file = storage_file
-        self.population_generator = generator \
-                                    if generator \
-                                    else PopulationGenerator()
+        self.population_generator = generator
         if not os.path.isfile(self.storage_file):
             self._initialize()
         else:
@@ -100,15 +98,15 @@ class HyperparameterCache:
     
     def _load(self):
         with open(self.storage_file, 'r') as json_file:
-            self.hp_ratings = HyperparameterCache._decode(json.load(json_file))
+            self.ratings = HyperparameterCache._decode(json.load(json_file))
         
     def _save(self):
         with open(self.storage_file, 'w') as json_file:
-            json.dump(HyperparameterCache._encode(self.hp_ratings), json_file)
+            json.dump(HyperparameterCache._encode(self.ratings), json_file)
         
     def _initialize(self):
-        self.hp_ratings = {CURRENT : [], OLD : []}
-        self.hp_ratings[CURRENT] = self.population_generator.initial_population()
+        self.ratings = {CURRENT : [], OLD : []}
+        self.ratings[CURRENT] = self.population_generator.initial_population()
         self._save()
         
     @staticmethod
@@ -138,16 +136,16 @@ class HyperparameterCache:
         return result
     
     def get_next_generation(self):
-        next_generation = self.population_generator.next_population(self.hp_ratings[CURRENT])
-        self.hp_ratings[OLD] += self.hp_ratings[CURRENT]
-        self.hp_ratings[CURRENT] = next_generation
+        next_generation = self.population_generator.next_population(self.ratings[CURRENT])
+        self.ratings[OLD] += self.ratings[CURRENT]
+        self.ratings[CURRENT] = next_generation
         self._save()
         
     def best(self):
-        return best_of(self.hp_ratings[CURRENT], 1)[0]
+        return best_of(self.ratings[CURRENT], 1)[0]
         
     def __repr__(self):
-        return json.dumps(self.hp_ratings, 
+        return json.dumps(self.ratings, 
                           sort_keys = True, 
                           indent = 2,
                           separators=(',', ': '))
