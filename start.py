@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE
 from common.simulation import SimulationProxy, play_1_1
 from common.agents import create_human_agent, create_astar_agent, create_forced_agent
 from evolution import evolve
@@ -9,6 +10,7 @@ from gan import generator_client
 import matplotlib.pyplot as plt
 from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, HyperparameterCache
+from timeit import default_timer as timer
 
 def test_gan():
     generator_client.load_generator()
@@ -49,28 +51,29 @@ def test_evolution(hyperparameters = evolve.Hyperparameters()):
        
 def test_tuning():
     mock_evaluation = lambda hp: hp[0]
-    popgen = PopulationGenerator(evaluator = mock_evaluation, 
-                                 population_size = 2)
-    cache = HyperparameterCache(generator = popgen)
+    population_generator = PopulationGenerator(evaluator = mock_evaluation,
+                                               population_size = 2)
+    cache = HyperparameterCache(generator = population_generator, storage_file = DEFAULT_HYPERPARAMETER_CACHE_FILE)
     return cache
 
-def plot_tuning():
-    mock_evaluation = lambda hp: hp[0]
-    
-    xs, fitnesses, hp0s, hp1s, hp2s, magnitudes, sums = [], [], [], [], [], [], []
-    names = ["fitness", 
+def plot_tuning(num_generations):
+    mock_evaluation = lambda hp: -(hp[0] ** 2 + hp[1] ** 2 + hp[2] ** 2)
+
+    generation_numbers = []
+    y_axis_names = ["fitness",
              "0th position", 
              "1st position", 
              "2nd position", 
              "magnitude", 
              "sums"]
+    fitnesses, hp0s, hp1s, hp2s, magnitudes, sums = [ [] for _ in range(len(y_axis_names)) ]
     
-    popgen = PopulationGenerator(evaluator = mock_evaluation)
-    cache = HyperparameterCache(generator = popgen)
-    for generation in range(2):
-        candidate, fitness = tuple(*cache.best())
+    population_generator = PopulationGenerator(evaluator = mock_evaluation)
+    cache = HyperparameterCache(generator = population_generator, storage_file = DEFAULT_HYPERPARAMETER_CACHE_FILE)
+    for generation in range(num_generations):
+        candidate, fitness = cache.best()
         
-        xs.append(generation)
+        generation_numbers.append(generation)
         fitnesses.append(fitness)
         hp0s.append(candidate[0])
         hp1s.append(candidate[1])
@@ -80,17 +83,27 @@ def plot_tuning():
         
         cache.get_next_generation()
     
-    for i, ys in enumerate([fitnesses, hp0s, hp1s, hp2s, magnitudes, sums]):
+    for y_axis_name, y_values in zip(y_axis_names, [fitnesses, hp0s, hp1s, hp2s, magnitudes, sums]):
         fig, ax = plt.subplots()
-        ax.plot(xs, ys)
-        ax.set_title(names[i])
+        ax.plot(generation_numbers, y_values)
+        ax.set_title(y_axis_name)
         fig.show()
     return cache
 
 def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
+    
+def timing_run():
+    print("max_iters:", evolve.MAX_ITERS)
+    start = timer()
+    level = evolve.run()
+    end = timer()
+    print("Time taken for run:", end - start, "(s)")
+    return level
 
 if __name__ == '__main__':
-    cache = test_tuning()
+    level = timing_run()
+    SimulationProxy(level, agent=create_human_agent(), visualize = True).invoke()
+
     
     
