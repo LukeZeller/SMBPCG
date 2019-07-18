@@ -46,10 +46,7 @@ def _fitness(level, hp, ret_passed_bool = False):
     else:
         return fitness
 
-def _multiple_run_fitness(latent_vector, hp):
-    generator_client.load_generator()
-    level = generator_client.apply_generator(latent_vector)
-
+def _multiple_run_fitness(level, hp):
     min_fit = INF
     fits = []
     passed = []
