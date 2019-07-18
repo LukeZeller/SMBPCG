@@ -4,12 +4,11 @@ from multiprocessing import Pool
 import os
 import cma
 
-from common import constants
-from common.constants import DEBUG_PRINT
+from common.constants import DEBUG_PRINT, INF
 from common.simulation import SimulationProxy
-from evolution.level_difficulty.feasible_shifts import number_of_shifts_and_jumps
 from evolution.level_difficulty.difficulty \
     import calculate_difficulty_for_failure, calculate_difficulty_for_success
+from common.check_moves import can_complete_with_astar
 from gan import generator_client
 
 from typing import NamedTuple
@@ -22,9 +21,7 @@ class Hyperparameters(NamedTuple):
 # Number of times the A* agent is invoked on each sample during evolution
 TRIALS_PER_SAMPLE = 1
 MAX_ITERS = 1
-PARALLELIZE_TRIALS = False
 
-# TODO: Generalize and make magic numbers into parameters w/ defaults
 # TODO: Refactor into class for cleanliness
 
 ### WARNING: CONSTRUCTION ZONE ###
@@ -32,7 +29,7 @@ PARALLELIZE_TRIALS = False
 cma_es = None
 
 # Sample fitness function based on EvalutionInfo information
-def _fitness_function(level, ret_passed_bool = False, hp = Hyperparameters()):
+def _fitness(level, hp, ret_passed_bool = False):
     sim_proxy = SimulationProxy(level)
     sim_proxy.invoke()
     info = sim_proxy.eval_info
@@ -49,34 +46,23 @@ def _fitness_function(level, ret_passed_bool = False, hp = Hyperparameters()):
     else:
         return fitness
 
-def _fitness(latent_vector, hp = Hyperparameters()):
+def _multiple_run_fitness(latent_vector, hp):
     generator_client.load_generator()
     level = generator_client.apply_generator(latent_vector)
 
-    min_fit = constants.INF
+    min_fit = INF
     fits = []
     passed = []
 
-    if PARALLELIZE_TRIALS:
-        with Pool() as p:
-            fit_fn_with_info = functools.partial(_fitness_function, ret_passed_bool = True, hp = hp)
-            fit_data = p.map(fit_fn_with_info, [level for _ in range(TRIALS_PER_SAMPLE)])
-            fits = [elem[0] for elem in fit_data]
-            passed = [1 if elem[1] else 0 for elem in fit_data]
-
-            if DEBUG_PRINT:
-                print("Trial fitnesses: " + str(fits))
-                print("Passed trial indicators: " + str(passed))
-    else:
-        for t_itr in range(TRIALS_PER_SAMPLE):
-            trial_fit, level_passed = _fitness_function(level, True, hp)
-            
-            if DEBUG_PRINT:
-                print("Trial " + str(t_itr) + " Fitness: " + str(trial_fit))
+    for t_itr in range(TRIALS_PER_SAMPLE):
+        trial_fit, level_passed = _fitness(level, hp, ret_passed_bool = True)
         
-            fits.append(trial_fit)
-            passed.append(1 if level_passed else 0)
-            min_fit = min(trial_fit, min_fit)
+        if DEBUG_PRINT:
+            print("Trial " + str(t_itr) + " Fitness: " + str(trial_fit))
+    
+        fits.append(trial_fit)
+        passed.append(1 if level_passed else 0)
+        min_fit = min(trial_fit, min_fit)
 
     passed_cnt = sum(passed)
     failed_pct = float(TRIALS_PER_SAMPLE - passed_cnt) / TRIALS_PER_SAMPLE
@@ -98,9 +84,14 @@ def _fitness(latent_vector, hp = Hyperparameters()):
             print("AVG FIT: " + str(avg_fit))
         scaled_fitness_value = hp.ALL_FAILURE_COEFFICIENT * avg_fit
         return scaled_fitness_value
+    
+def _latent_vector_fitness(latent_vector, hp):
+    generator_client.load_generator()
+    level = generator_client.apply_generator(latent_vector)
+    return _multiple_run_fitness(level, hp)
 
 def run(hyperparameters = Hyperparameters()):
-    fitness = functools.partial(_fitness, hp = hyperparameters)
+    fitness = functools.partial(_latent_vector_fitness, hp = hyperparameters)
     
     cma_es = cma.CMAEvolutionStrategy([0] * 32, 1 / math.sqrt(32), {'maxiter':MAX_ITERS})
 
@@ -114,7 +105,7 @@ def run(hyperparameters = Hyperparameters()):
         population = cma_es.ask()
         p_sz = len(population)
         best_lv = None
-        best_fitness = constants.INF
+        best_fitness = INF
         with Pool() as p:
             fits = list(map(fitness, population))
             if DEBUG_PRINT:

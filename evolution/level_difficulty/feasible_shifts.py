@@ -1,6 +1,5 @@
 from common.constants import KEY_JUMP, DEBUG_PRINT
-from evolution.level_difficulty.check_moves import can_complete, simulate_level_with_moves
-from multiprocessing import Pool
+from common.check_moves import can_complete_with_moves
 from functools import partial
 import time
 
@@ -47,7 +46,7 @@ def _removed_redundant_jumps(level, moves, jump_starts, jump_ends):
     for i, (jump_start, jump_end) in enumerate(zip(jump_starts, jump_ends)):
         new_moves = moves.copy()
         new_moves.removeJumpsInRange(jump_start, jump_end)
-        if can_complete(level, new_moves, False):
+        if can_complete_with_moves(level, new_moves, False):
             redundant_jump_indices.add(i)
             moves = new_moves.copy()
     jump_starts = [jump
@@ -92,7 +91,7 @@ def _number_of_shifts_for_specific_jump(level, moves, jump_starts, jump_ends, ju
             new_moves = moves.copy()
             new_moves.shiftedJump(original_start, original_end,
                                   new_start, new_end)
-            if can_complete(level, new_moves, False):
+            if can_complete_with_moves(level, new_moves, False):
                 valid_shifts_for_jump += 1
                 break
     return valid_shifts_for_jump
