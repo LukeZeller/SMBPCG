@@ -96,7 +96,7 @@ def _latent_vector_fitness(latent_vector, hp):
     level = generator_client.apply_generator(latent_vector)
     return _multiple_run_fitness(level, hp)
 
-def run(hyperparameters):
+def run(hyperparameters, return_fitnesses = False):
     fitness = functools.partial(_latent_vector_fitness, hp = hyperparameters)
     
     cma_es = cma.CMAEvolutionStrategy([0] * 32, 1 / math.sqrt(32), {'maxiter':MAX_ITERS})
@@ -114,9 +114,9 @@ def run(hyperparameters):
         best_fitness = INF
         
         fits = list(map(fitness, population))
+        print(" ---- Generation " + str(gen_itr) + " ----")
         if DEBUG_PRINT:
             print("Fits:", fits)
-            print(" ---- Generation " + str(gen_itr) + " ----")
             print("GEN FITS: " + str(fits))
             print("GEN AVG: " + str(sum(fits) / len(fits)))
             print("p_sz", p_sz, "len_fits", len(fits))
@@ -148,4 +148,7 @@ def run(hyperparameters):
         print("Corresponding fitness: " + str(fitness(best_lv)))
         print("Saved best fitness: " + str(best_fitness))
     print("Type of best_lv_f: ", type(best_lv_f))   
-    return generator_client.apply_generator(best_lv_f)
+    if return_fitnesses:
+        return generator_client.apply_generator(best_lv_f), avg_fits
+    else:
+        return generator_client.apply_generator(best_lv_f)
