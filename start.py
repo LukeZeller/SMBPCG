@@ -87,6 +87,7 @@ def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
     
 def timing_run():
+    generator_client.load_generator()
     print("max_iters:", evolve.MAX_ITERS)
     start = timer()
     level = evolve.run(evolve.Hyperparameters())
@@ -95,7 +96,5 @@ def timing_run():
     return level
 
 if __name__ == '__main__':
-    res = test_gan()
-
-    
+    res = timing_run()
     
