@@ -84,7 +84,7 @@ def _latent_vector_fitness(latent_vector, hp):
     level = generator_client.apply_generator(latent_vector)
     return _multiple_run_fitness(level, hp)
 
-def run(hyperparameters = Hyperparameters()):
+def run(hyperparameters):
     fitness = functools.partial(_latent_vector_fitness, hp = hyperparameters)
     
     cma_es = cma.CMAEvolutionStrategy([0] * 32, 1 / math.sqrt(32), {'maxiter':MAX_ITERS})
