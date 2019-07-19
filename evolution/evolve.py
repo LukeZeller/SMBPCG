@@ -7,7 +7,7 @@ import cma
 from common.constants import DEBUG_PRINT, INF
 from evolution.level_difficulty.difficulty \
     import calculate_difficulty_for_failure, calculate_difficulty_for_success
-from common.check_moves import simulate_level_with_astar, can_complete_with_astar
+from common.simulate_agent import simulate_level_with_astar, can_complete_with_astar
 from gan import generator_client
 
 from typing import NamedTuple

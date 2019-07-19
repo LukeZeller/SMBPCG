@@ -1,5 +1,5 @@
 from common.constants import KEY_JUMP, DEBUG_PRINT
-from common.check_moves import can_complete_with_moves
+from common.simulate_agent import can_complete_with_moves
 from functools import partial
 import time
 
