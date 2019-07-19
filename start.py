@@ -13,16 +13,16 @@ from evolution.human_evaluation.hyperparameter_random_search \
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 
+def test_1_1():
+    play_1_1()
+
 def test_gan():
     generator_client.load_generator()
-
-    lv = np.random.uniform(-1, 1, 32)
-
-    level = generator_client.apply_generator(lv)
-    print("Play level once")
+    latent_vector = np.random.uniform(-1, 1, 32)
+    level = generator_client.apply_generator(latent_vector)
+    print("Play level once:")
     simulate_level_with_human(level)
-
-    print(lv)
+    print("Latent vector:\n", latent_vector)
     print("Evaluate level:")
     return evaluate_level(level)
 
@@ -32,12 +32,13 @@ def test_fitness(random_latent_vector=True):
         latent_vector = np.random.uniform(-1, 1, 32)
     else:
         latent_vector = DEFAULT_LATENT_VECTOR
-    fitness = evolve._fitness(latent_vector)
+    level = generator_client.apply_generator(latent_vector)
+    fitness = evolve._fitness(level, evolve.Hyperparameters())
     return latent_vector, fitness
 
 def test_evolution(hyperparameters = evolve.Hyperparameters()):
     generator_client.load_generator()
-    level = evolve.run()
+    level = evolve.run(hyperparameters)
     print(level.get_data())
     replay_level_with_human(level)
        
@@ -88,14 +89,13 @@ def test_json_level(json_fname):
 def timing_run():
     print("max_iters:", evolve.MAX_ITERS)
     start = timer()
-    level = evolve.run()
+    level = evolve.run(evolve.Hyperparameters())
     end = timer()
     print("Time taken for run:", end - start, "(s)")
     return level
 
 if __name__ == '__main__':
-    level = timing_run()
-    simulate_level_with_human(level)
+    res = test_gan()
 
     
     
