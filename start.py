@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE
+from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, DEFAULT_LATENT_VECTOR
 from common.simulation import SimulationProxy, play_1_1
 from common.agents import create_human_agent, create_astar_agent, create_forced_agent
 from evolution import evolve
@@ -31,13 +31,7 @@ def test_fitness(random_latent_vector=True):
     if random_latent_vector:
         latent_vector = np.random.uniform(-1, 1, 32)
     else:
-        latent_vector = [-0.78956354, 0.04543577, -0.96196604, 0.52659459, -0.12304981,
-                         0.09152696, 0.04387067, -0.31702606, 0.16287384, 0.98019136,
-                         -0.14670026, 0.69688305, 0.91131571, -0.23115624, 0.07971183,
-                         0.94697882, -0.78124791, 0.1948184, 0.68505739, 0.7450125,
-                         -0.8739045, -0.74168745, 0.55388925, 0.06871638, -0.27734117,
-                         0.17328284, 0.30875873, 0.85229842, 0.47069057, -0.77601111,
-                         0.83469813, 0.79881951]
+        latent_vector = DEFAULT_LATENT_VECTOR
     fitness = evolve._fitness(latent_vector)
     return latent_vector, fitness
 
