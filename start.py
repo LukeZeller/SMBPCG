@@ -4,13 +4,14 @@ import numpy as np
 
 from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, DEFAULT_LATENT_VECTOR
 from common.simulation import SimulationProxy, play_1_1
-from common.agents import create_human_agent, create_astar_agent, create_forced_agent
+from common.simulate_agent import simulate_level_with_human, replay_level_with_human
 from evolution import evolve
 from gan import generator_client
 import matplotlib.pyplot as plt
 from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, HyperparameterCache
 from timeit import default_timer as timer
+from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 
 def test_gan():
     generator_client.load_generator()
@@ -19,9 +20,8 @@ def test_gan():
 
     level = generator_client.apply_generator(lv)
     print("Play level once")
-    SimulationProxy(level, agent=create_human_agent(), visualize = True).invoke()
+    simulate_level_with_human(level)
 
-    # For testing purposes
     print(lv)
     print("Evaluate level:")
     return evaluate_level(level)
@@ -39,9 +39,7 @@ def test_evolution(hyperparameters = evolve.Hyperparameters()):
     generator_client.load_generator()
     level = evolve.run()
     print(level.get_data())
-    SimulationProxy(level = level, 
-                    agent = create_human_agent(), 
-                    visualize = True).invokeTillStopped()
+    replay_level_with_human(level)
        
 def test_tuning():
     mock_evaluation = lambda hp: hp[0]
@@ -97,7 +95,7 @@ def timing_run():
 
 if __name__ == '__main__':
     level = timing_run()
-    SimulationProxy(level, agent=create_human_agent(), visualize = True).invoke()
+    simulate_level_with_human(level)
 
     
     
