@@ -10,6 +10,7 @@ from common.simulate_agent \
     import simulate_level_with_astar
 from gan import generator_client
 from typing import NamedTuple
+from multiprocessing import Pool
 
 class Hyperparameters(NamedTuple):
     SUCCESS_COEFFICIENT : float = 0.0025
@@ -17,8 +18,8 @@ class Hyperparameters(NamedTuple):
     ALL_FAILURE_COEFFICIENT : float = 1.0000
 
 # Number of times the A* agent is invoked on each sample during evolution
-TRIALS_PER_SAMPLE = 1
-MAX_ITERS = 1
+TRIALS_PER_SAMPLE = 10
+MAX_ITERS = 50
 
 ### WARNING: CONSTRUCTION ZONE ###
 
@@ -102,6 +103,7 @@ def run(hyperparameters, return_fitnesses = False):
     cma_es = cma.CMAEvolutionStrategy([0] * 32, 1 / math.sqrt(32), {'maxiter':MAX_ITERS})
 
     avg_fits = []
+    min_fits = []
     gen_itr = 0
 
     print("Pool sz: " + str(os.cpu_count()))
@@ -112,7 +114,6 @@ def run(hyperparameters, return_fitnesses = False):
         p_sz = len(population)
         best_lv = None
         best_fitness = INF
-        
         fits = list(map(fitness, population))
         print(" ---- Generation " + str(gen_itr) + " ----")
         if DEBUG_PRINT:
@@ -121,6 +122,7 @@ def run(hyperparameters, return_fitnesses = False):
             print("GEN AVG: " + str(sum(fits) / len(fits)))
             print("p_sz", p_sz, "len_fits", len(fits))
         avg_fits.append(sum(fits) / len(fits))
+        min_fits.append(min(fits))
         cma_es.tell(population, fits)
         for i in range(p_sz):
             if fits[i] <= best_fitness:
@@ -149,6 +151,6 @@ def run(hyperparameters, return_fitnesses = False):
         print("Saved best fitness: " + str(best_fitness))
     print("Type of best_lv_f: ", type(best_lv_f))   
     if return_fitnesses:
-        return generator_client.apply_generator(best_lv_f), avg_fits
+        return generator_client.apply_generator(best_lv_f), avg_fits, min_fits
     else:
         return generator_client.apply_generator(best_lv_f)

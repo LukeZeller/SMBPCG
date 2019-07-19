@@ -13,6 +13,8 @@ from evolution.human_evaluation.hyperparameter_random_search \
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 
+### Testing Level Playing ###
+
 def test_1_1():
     play_1_1()
 
@@ -26,6 +28,8 @@ def test_gan():
     print("Evaluate level:")
     return evaluate_level(level)
 
+### Testing Level Fitness ###
+
 def test_fitness(random_latent_vector=True):
     generator_client.load_generator()
     if random_latent_vector:
@@ -36,11 +40,37 @@ def test_fitness(random_latent_vector=True):
     fitness = evolve._fitness(level, evolve.Hyperparameters())
     return latent_vector, fitness
 
+def test_json_level(json_fname):
+    SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
+
+### Testing CMA ###
+
 def test_evolution(hyperparameters = evolve.Hyperparameters()):
     generator_client.load_generator()
     level = evolve.run(hyperparameters)
     print(level.get_data())
     replay_level_with_human(level)
+    
+def timing_run(hp):
+    generator_client.load_generator()
+    print("max_iters:", evolve.MAX_ITERS)
+    start = timer()
+    level, avgs, mins = evolve.run(hp, return_fitnesses=True)
+    end = timer()
+    print("Time taken for run:", end - start, "(s)")
+    return level, avgs, mins
+
+def plot_run_fitness(hp):
+    level, avgs, mins = timing_run(hp)
+    generation_numbers = [i for i in range(len(avgs))]
+    for name, ys in zip(["avgs", "mins"], [avgs, mins]): 
+        fig, ax = plt.subplots()
+        ax.plot(generation_numbers, ys)
+        ax.set_title("Level fitness value per generation (" + name + ")")
+        fig.show()
+    return level
+
+### Testing Hyperparameter Training ###
        
 def test_tuning():
     mock_evaluation = lambda hp: hp[0]
@@ -83,18 +113,8 @@ def plot_tuning(num_generations):
         fig.show()
     return cache
 
-def test_json_level(json_fname):
-    SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
-    
-def timing_run():
-    generator_client.load_generator()
-    print("max_iters:", evolve.MAX_ITERS)
-    start = timer()
-    level = evolve.run(evolve.Hyperparameters())
-    end = timer()
-    print("Time taken for run:", end - start, "(s)")
-    return level
+### Experiment Below ###
 
 if __name__ == '__main__':
-    res = timing_run()
+    level = plot_run_fitness(hp = evolve.Hyperparameters())
     
