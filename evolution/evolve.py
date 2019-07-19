@@ -9,8 +9,6 @@ from evolution.level_difficulty.difficulty \
 from common.simulate_agent \
     import simulate_level_with_astar
 from gan import generator_client
-from multiprocessing import Pool
-
 from typing import NamedTuple
 
 class Hyperparameters(NamedTuple):
@@ -19,7 +17,7 @@ class Hyperparameters(NamedTuple):
     ALL_FAILURE_COEFFICIENT : float = 1.0000
 
 # Number of times the A* agent is invoked on each sample during evolution
-TRIALS_PER_SAMPLE = 5
+TRIALS_PER_SAMPLE = 1
 MAX_ITERS = 1
 
 ### WARNING: CONSTRUCTION ZONE ###
@@ -115,21 +113,20 @@ def run(hyperparameters):
         best_lv = None
         best_fitness = INF
         
-        with Pool() as pool:
-            fits = list(pool.map(fitness, population))          
-            if DEBUG_PRINT:
-                print("Fits:", fits)
-                print(" ---- Generation " + str(gen_itr) + " ----")
-                print("GEN FITS: " + str(fits))
-                print("GEN AVG: " + str(sum(fits) / len(fits)))
-                print("p_sz", p_sz, "len_fits", len(fits))
-            avg_fits.append(sum(fits) / len(fits))
-            cma_es.tell(population, fits)
-            for i in range(p_sz):
-                if fits[i] <= best_fitness:
-                    best_lv = population[i]
-                    best_fitness = fits[i]
-            gen_itr += 1
+        fits = list(map(fitness, population))
+        if DEBUG_PRINT:
+            print("Fits:", fits)
+            print(" ---- Generation " + str(gen_itr) + " ----")
+            print("GEN FITS: " + str(fits))
+            print("GEN AVG: " + str(sum(fits) / len(fits)))
+            print("p_sz", p_sz, "len_fits", len(fits))
+        avg_fits.append(sum(fits) / len(fits))
+        cma_es.tell(population, fits)
+        for i in range(p_sz):
+            if fits[i] <= best_fitness:
+                best_lv = population[i]
+                best_fitness = fits[i]
+        gen_itr += 1
 
     if DEBUG_PRINT:
         print("ALL GEN AVG FITS: " + str(avg_fits))
