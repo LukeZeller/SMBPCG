@@ -141,7 +141,7 @@ class SimulationProxy(object):
     def invokeTillStopped(self):
         while True:
             self.invoke()
-            inp = input("Type STOP to stop playing level")
+            inp = input("Type STOP to stop playing level (to continue, enter anything else): ")
             if inp.upper() == "STOP":
                 break
 
