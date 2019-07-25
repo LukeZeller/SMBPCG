@@ -18,6 +18,7 @@ class Hyperparameters(NamedTuple):
     FAILURE_PERCENTAGE_COEFFICIENT : float = 1.0000
     ALL_FAILURE_COEFFICIENT : float = 1.0000
 
+default_hyperparameters = Hyperparameters()
 bad_hyperparameters = Hyperparameters(0.1, 0.2, 0.3)
 
 # Number of times the A* agent is invoked on each sample during evolution
