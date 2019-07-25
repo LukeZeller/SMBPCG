@@ -30,7 +30,7 @@ def dummy_evaluate_hyperparameters(hp):
 ## Random Search Helper Functions ##
 
 def random_hyperparameters():
-    vec = np.random.uniform(size = DIMENSION)
+    vec = np.random.uniform(low = -1.0, high = 1.0, size = DIMENSION)
     return Hyperparameters(*vec)
 
 def point_on_random_sphere(dimension, radius = 1):
@@ -58,11 +58,10 @@ class PopulationGenerator:
                  num_mutations_per_candidate = 4,
                  step_size = 0.1,
                  adaptive_step = False):
-        self.dimension = len(Hyperparameters._fields)
+        self.evaluator = evaluator
         self.population_size = population_size
         self.num_mutations_per_candidate = num_mutations_per_candidate
         self.step_size = step_size
-        self.evaluator = evaluator
         self.adaptive_step = adaptive_step
         self.iteration = 0
     
@@ -75,17 +74,19 @@ class PopulationGenerator:
         self.iteration = 0
         return population
     
+    def radius(self):
+        if not self.adaptive_step:
+            return self.step_size
+        else:
+            return self.step_size / (1.0 + self.iteration)
+    
     def next_population(self, population):
         assert len(population) >= self.population_size
         
         possible_candidates = []
         for candidate, fitness in population:
             for  _ in range(self.num_mutations_per_candidate):
-                if self.adaptive_step:
-                    radius = self.step_size / (1.0 + self.iteration)
-                else:
-                    radius = self.step_size
-                mutated_candidate = mutated(candidate, radius)
+                mutated_candidate = mutated(candidate, self.radius())
                 mutated_candidate_fitness = self.evaluator(mutated_candidate)
                 possible_candidates.append((mutated_candidate, 
                                             mutated_candidate_fitness))
