@@ -74,6 +74,66 @@ def plot_run_fitness(hp):
         fig.show()
     return level
 
+def test_correlation(hp1,
+                     hp2,
+                     small_iterations = 5,
+                     big_iterations = 20):
+    assert hp1 != hp2
+    small_levels = [{"level": evolve.run(hp1, small_iterations), 
+                     "hyperparameter": hp1,
+                     "iterations": small_iterations}, 
+                    {"level": evolve.run(hp2, small_iterations), 
+                     "hyperparameter": hp2,
+                     "iterations": small_iterations}]
+    big_levels = [{"level": evolve.run(hp1, big_iterations), 
+                   "hyperparameter": hp1,
+                   "iterations": big_iterations}, 
+                    {"level": evolve.run(hp2, big_iterations),
+                     "hyperparameter": hp2,
+                     "iterations": big_iterations}]
+    
+    swap_small_iterations = randint(0, 1) == 0
+    swap_big_iterations = randint(0, 1) == 0
+    
+    if swap_small_iterations:
+        small_levels[0], small_levels[1] = small_levels[1], small_levels[0]
+    if swap_big_iterations:
+        big_levels[0], big_levels[1] = big_levels[1], big_levels[0]
+        
+    small_results = dict()
+    big_results = dict()
+        
+    for data in small_levels:
+        level, hp = data["level"], data["hyperparameter"]
+        print("Evaluate the following level:")
+        small_results[hp] = evaluate_level(level)
+        
+    for data in big_levels:
+        level, hp = data["level"], data["hyperparameter"]
+        print("Evaluate the following level:")
+        big_results[hp] = evaluate_level(level)
+        
+    hp1_worse_for_small_iterations = small_results[hp1] < small_results[hp2]
+    hp1_worse_for_big_iterations = big_results[hp1] < big_results[hp2]
+    
+    has_correlation = hp1_worse_for_small_iterations == hp1_worse_for_big_iterations
+    correlation_value = 1 if has_correlation else 0
+    with open(DEFAULT_CORRELATION_SUMMARY_FILE, 'a') as summary_file:
+        print(correlation_value, file = summary_file)
+        
+def correlation_percentage():
+    total = 0
+    correlations = 0
+    with open(DEFAULT_CORRELATION_SUMMARY_FILE, 'r') as summary_file:
+        for line in summary_file:
+            correlated = int(line.strip())
+            assert type(correlated) == int
+            assert correlated == 0 or correlated == 1
+            total += 1
+            correlations += correlated
+    assert total > 0
+    return 100.0 * float(correlations) / total
+            
 ### Testing Hyperparameter Training ###
        
 def test_tuning():
@@ -120,5 +180,5 @@ def plot_tuning(num_generations):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    res = test_fitness()
+    pass
     

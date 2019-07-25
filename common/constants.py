@@ -18,6 +18,10 @@ DEBUG_PRINT = False
 
 DEFAULT_HYPERPARAMETER_CACHE_FILE = "evolution/human_evaluation/cache.json"
 
+DEFAULT_CORRELATION_RESULTS_FILE = "evolution/human_evaluation/correlation.json"
+
+DEFAULT_CORRELATION_SUMMARY_FILE = "evolution/human_evaluation/summary.txt"
+
 DEFAULT_LATENT_VECTOR = [-0.78956354, 0.04543577, -0.96196604, 0.52659459, -0.12304981,
                          0.09152696, 0.04387067, -0.31702606, 0.16287384, 0.98019136,
                          -0.14670026, 0.69688305, 0.91131571, -0.23115624, 0.07971183,
