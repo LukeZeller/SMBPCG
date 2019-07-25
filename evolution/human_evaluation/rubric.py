@@ -4,7 +4,7 @@ class Rubric(NamedTuple):
     overall_enjoyment : int
     
 CATEGORY_LOWER_BOUND = 1
-CATEGORY_UPPER_BOUND = 10
+CATEGORY_UPPER_BOUND = 20
 CATEGORY_NIL_VALUE = -999
 
 RUBRIC_INPUT_PROMPT = f"Rate your overall enjoyment on a scale of " + \
