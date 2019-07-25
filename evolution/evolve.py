@@ -11,6 +11,7 @@ from common.simulate_agent \
 from gan import generator_client
 from typing import NamedTuple
 from multiprocessing import Pool
+from time import time
 
 class Hyperparameters(NamedTuple):
     SUCCESS_COEFFICIENT : float = 0.0025
@@ -114,24 +115,32 @@ def run(hyperparameters, max_iterations = MAX_ITERS, return_fitnesses = False):
     while not cma_es.stop():
         population = cma_es.ask()
         p_sz = len(population)
+        print("Population size: ", p_sz)
         best_lv = None
         best_fitness = INF
         
+        start_total_time = time()
         with Pool() as pool:
             print(" ---- Generation " + str(gen_itr) + " ----")
-            fits = list(pool.map(fitness, population))          
+            start_fitness_time = time()
+            fits = list(pool.map(fitness, population))
+            print("Time for fitness: ", time() - start_fitness_time)
             if DEBUG_PRINT:
                 print("Fits:", fits)
                 print("GEN FITS: " + str(fits))
                 print("GEN AVG: " + str(sum(fits) / len(fits)))
                 print("p_sz", p_sz, "len_fits", len(fits))
             avg_fits.append(sum(fits) / len(fits))
+            start_tell_time = time()
             cma_es.tell(population, fits)
+            print("Time for tell: ", time() - start_tell_time)
+
             for i in range(p_sz):
                 if fits[i] <= best_fitness:
                     best_lv = population[i]
                     best_fitness = fits[i]
             gen_itr += 1
+        print("Total loop time: ", time() - start_total_time)
 
     if DEBUG_PRINT:
         print("ALL GEN AVG FITS: " + str(avg_fits))
