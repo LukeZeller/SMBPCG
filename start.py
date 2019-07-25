@@ -78,12 +78,6 @@ def test_correlation(hp1,
                      hp2,
                      small_iterations = 5,
                      big_iterations = 20):
-    
-    def random_level():
-        latent_vector = np.random.uniform(-1, 1, 32)
-        level = generator_client.apply_generator(latent_vector)
-        return level
-    
     generator_client.load_generator()
     assert hp1 != hp2
     print("Iterations: ", small_iterations)
