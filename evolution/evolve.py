@@ -23,6 +23,7 @@ bad_hyperparameters = Hyperparameters(0.1, 0.2, 0.3)
 # Number of times the A* agent is invoked on each sample during evolution
 TRIALS_PER_SAMPLE = 10
 MAX_ITERS = 50
+PARALLELIZE_ITERATIONS = True
 
 ### WARNING: CONSTRUCTION ZONE ###
 
@@ -120,26 +121,32 @@ def run(hyperparameters, max_iterations = MAX_ITERS, return_fitnesses = False):
         best_fitness = INF
         
         start_total_time = time()
-        with Pool() as pool:
-            print(" ---- Generation " + str(gen_itr) + " ----")
-            start_fitness_time = time()
-            fits = list(pool.map(fitness, population))
-            print("Time for fitness: ", time() - start_fitness_time)
-            if DEBUG_PRINT:
-                print("Fits:", fits)
-                print("GEN FITS: " + str(fits))
-                print("GEN AVG: " + str(sum(fits) / len(fits)))
-                print("p_sz", p_sz, "len_fits", len(fits))
-            avg_fits.append(sum(fits) / len(fits))
-            start_tell_time = time()
-            cma_es.tell(population, fits)
-            print("Time for tell: ", time() - start_tell_time)
+        print(" ---- Generation " + str(gen_itr) + " ----")
+        
+        start_fitness_time = time()
+        if PARALLELIZE_ITERATIONS:
+            with Pool() as pool:
+                fits = list(pool.map(fitness, population))
+        else:
+            fits = list(map(fitness, population))
+        print("Time for fitness: ", time() - start_fitness_time)
+        
+        start_append_time = time()
+        avg_fits.append(sum(fits) / len(fits))
+        print("Time for append: ", time() - start_append_time)
+        
+        start_tell_time = time()
+        cma_es.tell(population, fits)
+        print("Time for tell: ", time() - start_tell_time)
 
-            for i in range(p_sz):
-                if fits[i] <= best_fitness:
-                    best_lv = population[i]
-                    best_fitness = fits[i]
-            gen_itr += 1
+        start_best_find_time = time()
+        for i in range(p_sz):
+            if fits[i] <= best_fitness:
+                best_lv = population[i]
+                best_fitness = fits[i]
+        print("Time for best fitness find: ", time() - start_best_find_time)
+        
+        gen_itr += 1
         print("Total loop time: ", time() - start_total_time)
 
     if DEBUG_PRINT:
