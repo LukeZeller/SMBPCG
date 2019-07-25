@@ -2,16 +2,20 @@
 
 import numpy as np
 
-from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, DEFAULT_LATENT_VECTOR
+from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, \
+                             DEFAULT_LATENT_VECTOR, \
+                             DEFAULT_CORRELATION_SUMMARY_FILE
 from common.simulation import SimulationProxy, play_1_1
 from common.simulate_agent import simulate_level_with_human, replay_level_with_human
 from evolution import evolve
+from evolution.evolve import Hyperparameters
 from gan import generator_client
 import matplotlib.pyplot as plt
 from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, HyperparameterCache
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
+from random import randint
 
 ### Testing Level Playing ###
 
@@ -37,7 +41,7 @@ def test_fitness(random_latent_vector=True):
     else:
         latent_vector = DEFAULT_LATENT_VECTOR
     level = generator_client.apply_generator(latent_vector)
-    fitness = evolve._fitness(level, evolve.Hyperparameters())
+    fitness = evolve._multiple_run_fitness(level, Hyperparameters())
     return latent_vector, fitness
 
 def test_json_level(json_fname):
@@ -45,17 +49,17 @@ def test_json_level(json_fname):
 
 ### Testing CMA ###
 
-def test_evolution(hyperparameters = evolve.Hyperparameters()):
+def test_evolution(hyperparameters = Hyperparameters()):
     generator_client.load_generator()
     level = evolve.run(hyperparameters)
     print(level.get_data())
     replay_level_with_human(level)
     
-def timing_run(hp):
+def timing_run(hp, max_iterations):
     generator_client.load_generator()
-    print("max_iters:", evolve.MAX_ITERS)
+    print("Iterations:", max_iterations)
     start = timer()
-    level, avgs, mins = evolve.run(hp, return_fitnesses=True)
+    level, avgs, mins = evolve.run(hp, max_iterations, return_fitnesses=True)
     end = timer()
     print("Time taken for run:", end - start, "(s)")
     return level, avgs, mins
@@ -116,5 +120,5 @@ def plot_tuning(num_generations):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    level = plot_run_fitness(hp = evolve.Hyperparameters())
+    res = test_fitness()
     
