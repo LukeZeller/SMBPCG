@@ -1,4 +1,5 @@
 import numpy as np
+from common.constants import DEBUG_PRINT
 from evolution.evolve import Hyperparameters, run
 from evolution.human_evaluation.rubric import input_rubric, rubric_score
 from common.agents import create_human_agent
@@ -55,12 +56,15 @@ class PopulationGenerator:
                  evaluator,
                  population_size = 4,
                  num_mutations_per_candidate = 4,
-                 step_size = 0.1):
+                 step_size = 0.1,
+                 adaptive_step = False):
         self.dimension = len(Hyperparameters._fields)
         self.population_size = population_size
         self.num_mutations_per_candidate = num_mutations_per_candidate
         self.step_size = step_size
         self.evaluator = evaluator
+        self.adaptive_step = adaptive_step
+        self.iteration = 0
     
     def initial_population(self):
         population = []
@@ -68,6 +72,7 @@ class PopulationGenerator:
             candidate = random_hyperparameters()
             fitness = self.evaluator(candidate)
             population.append((candidate, fitness))
+        self.iteration = 0
         return population
     
     def next_population(self, population):
@@ -76,11 +81,18 @@ class PopulationGenerator:
         possible_candidates = []
         for candidate, fitness in population:
             for  _ in range(self.num_mutations_per_candidate):
-                mutated_candidate = mutated(candidate, self.step_size)
+                if self.adaptive_step:
+                    radius = self.step_size / (1.0 + self.iteration)
+                else:
+                    radius = self.step_size
+                mutated_candidate = mutated(candidate, radius)
                 mutated_candidate_fitness = self.evaluator(mutated_candidate)
                 possible_candidates.append((mutated_candidate, 
                                             mutated_candidate_fitness))
             possible_candidates.append((candidate, fitness))
+        if DEBUG_PRINT:
+            print("Iteration: ", self.iteration, "Radius: ", radius)
+        self.iteration += 1
         return best_of(possible_candidates, self.population_size)
     
 ### Class that handles how human evaluation results are stored via json ###    
