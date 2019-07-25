@@ -18,11 +18,9 @@ outcmaes/
 # Temporarily ignore directory holding old files (directory should be removed eventually)
 gan/original_files/
 
-# Ignore human evaluation storage file
-evolution/human_evaluation/cache.json
-
-# Ignore iteration correlation storage file(s)
-evolution/human_evaluation/summary.txt
-
 # Ignore images stored in results
 results/**/*.png
+
+# Ignore storage and cache files in results
+results/**/*.txt
+results/**/*.json
