@@ -4,15 +4,19 @@ import numpy as np
 
 from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, \
                              DEFAULT_LATENT_VECTOR, \
-                             DEFAULT_CORRELATION_SUMMARY_FILE
+                             DEFAULT_CORRELATION_SUMMARY_FILE, \
+                             EPS
 from common.simulation import SimulationProxy, play_1_1
 from common.simulate_agent import simulate_level_with_human, replay_level_with_human
 from evolution import evolve
-from evolution.evolve import Hyperparameters
+from evolution.evolve import default_hyperparameters, bad_hyperparameters
 from gan import generator_client
-import matplotlib.pyplot as plt
+from common.plotting import plot_to_file
 from evolution.human_evaluation.hyperparameter_random_search \
-    import PopulationGenerator, HyperparameterCache
+    import PopulationGenerator, \
+           HyperparameterCache, \
+           human_evaluate_hyperparameters, \
+           dummy_evaluate_hyperparameters
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 import random
@@ -41,7 +45,7 @@ def test_fitness(random_latent_vector=True):
     else:
         latent_vector = DEFAULT_LATENT_VECTOR
     level = generator_client.apply_generator(latent_vector)
-    fitness = evolve._multiple_run_fitness(level, Hyperparameters())
+    fitness = evolve._multiple_run_fitness(level, default_hyperparameters)
     return latent_vector, fitness
 
 def test_json_level(json_fname):
@@ -49,9 +53,9 @@ def test_json_level(json_fname):
 
 ### Testing CMA ###
 
-def test_evolution(hyperparameters = Hyperparameters()):
+def test_evolution(hyperparameters = default_hyperparameters):
     generator_client.load_generator()
-    level = evolve.run(hyperparameters)
+    level = evolve.run(hyperparameters, 5)
     print(level.get_data())
     replay_level_with_human(level)
     
@@ -67,11 +71,13 @@ def timing_run(hp, max_iterations):
 def plot_run_fitness(hp, max_iterations):
     level, avgs, mins = timing_run(hp, max_iterations)
     generation_numbers = [i for i in range(len(avgs))]
-    for name, ys in zip(["avgs", "mins"], [avgs, mins]): 
-        fig, ax = plt.subplots()
-        ax.plot(generation_numbers, ys)
-        ax.set_title("Level fitness value per generation (" + name + ")")
-        fig.show()
+    for name, ys in zip(["Average", "Minimum"], [avgs, mins]): 
+        plot_to_file(title = f"{name} Fitness Value per Generation",
+                     xs = generation_numbers, 
+                     ys = ys,
+                     xlabel = "Generation Number",
+                     ylabel = f"{name} Fitness",
+                     file_path = f"results/plots/fitness/{name}_cma_fitness_per_generation.png")
     return level
 
 def test_correlation(hp1,
@@ -141,27 +147,53 @@ def correlation_percentage():
             
 ### Testing Hyperparameter Training ###
        
-def test_tuning():
-    mock_evaluation = lambda hp: hp[0]
-    population_generator = PopulationGenerator(evaluator = mock_evaluation,
-                                               population_size = 2)
+def test_tuning(evaluation = human_evaluate_hyperparameters):
+    population_generator = PopulationGenerator(evaluator = evaluation,
+                                               population_size = 3,
+                                               num_mutations_per_candidate = 5,
+                                               step_size = 10.0,
+                                               adaptive_step = True)
     cache = HyperparameterCache(generator = population_generator, storage_file = DEFAULT_HYPERPARAMETER_CACHE_FILE)
     return cache
 
-def plot_tuning(num_generations):
-    mock_evaluation = lambda hp: -(hp[0] ** 2 + hp[1] ** 2 + hp[2] ** 2)
+def num_steps_to_optima(num_generations, 
+                        evaluation,
+                        optimal_fitness):
+    population_generator = PopulationGenerator(evaluator = evaluation, 
+                                               population_size = 4,
+                                               num_mutations_per_candidate = 4,
+                                               step_size = 5.0,
+                                               adaptive_step = True)
+    cache = HyperparameterCache(generator = population_generator, 
+                                storage_file = "results/data/hyperparameter_optima_check_cache.json")
+    cache.reset()
+    for generation in range(num_generations):
+        candidate, fitness = cache.best()
+        if abs(optimal_fitness - fitness) < EPS:
+            print(f"Reached optima at generation {generation}")
+            return generation
+    print("Never got close to optima")
+    return None
 
+
+def plot_tuning(num_generations, evaluation):
     generation_numbers = []
-    y_axis_names = ["fitness",
-             "0th position", 
-             "1st position", 
-             "2nd position", 
-             "magnitude", 
-             "sums"]
+    y_axis_names = ["Fitness",
+             "0th Position",
+             "1st Position",
+             "2nd Position",
+             "Hyper-Parameter Magnitude",
+             "Hyper-Parameter Sum"]
     fitnesses, hp0s, hp1s, hp2s, magnitudes, sums = [ [] for _ in range(len(y_axis_names)) ]
     
-    population_generator = PopulationGenerator(evaluator = mock_evaluation)
-    cache = HyperparameterCache(generator = population_generator, storage_file = DEFAULT_HYPERPARAMETER_CACHE_FILE)
+    population_generator = PopulationGenerator(evaluator = evaluation, 
+                                               population_size = 4,
+                                               num_mutations_per_candidate = 4,
+                                               step_size = 5.0,
+                                               adaptive_step = True)
+    cache = HyperparameterCache(generator = population_generator, 
+                                storage_file = "results/data/hyperparameter_plotting_cache.json")
+    cache.reset()
     for generation in range(num_generations):
         candidate, fitness = cache.best()
         
@@ -176,14 +208,29 @@ def plot_tuning(num_generations):
         cache.get_next_generation()
     
     for y_axis_name, y_values in zip(y_axis_names, [fitnesses, hp0s, hp1s, hp2s, magnitudes, sums]):
-        fig, ax = plt.subplots()
-        ax.plot(generation_numbers, y_values)
-        ax.set_title(y_axis_name)
-        fig.show()
+        plot_to_file(title = f"{y_axis_name} Values per Generation",
+                     xs = generation_numbers,
+                     ys = y_values,
+                     xlabel = "Generation Number",
+                     ylabel = y_axis_name,
+                     file_path = f"results/plots/hyperparameters/{y_axis_name}_per_random_search_generation.png")
     return cache
 
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    test_correlation(evolve.bad_hyperparameters, Hyperparameters())
+    test_1_1()
+    level = test_gan()
+    lv, fitness = test_fitness(True)
+    test_evolution(default_hyperparameters)
+    timing_run(default_hyperparameters, 20)
+    plot_run_fitness(default_hyperparameters, 5)
+    test_correlation(default_hyperparameters, bad_hyperparameters, 5, 20)
+    pct_correlation = correlation_percentage()
+    num_steps = num_steps_to_optima(100, dummy_evaluate_hyperparameters, 0.0) 
+    plotted_cache = plot_tuning(100, dummy_evaluate_hyperparameters)
+    cache = test_tuning()
+    
+    
+    
     
