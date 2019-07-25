@@ -15,7 +15,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, HyperparameterCache
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
-from random import randint
+import random
 
 ### Testing Level Playing ###
 
@@ -78,6 +78,13 @@ def test_correlation(hp1,
                      hp2,
                      small_iterations = 5,
                      big_iterations = 20):
+    
+    def random_level():
+        latent_vector = np.random.uniform(-1, 1, 32)
+        level = generator_client.apply_generator(latent_vector)
+        return level
+    
+    generator_client.load_generator()
     assert hp1 != hp2
     small_levels = [{"level": evolve.run(hp1, small_iterations), 
                      "hyperparameter": hp1,
@@ -88,16 +95,18 @@ def test_correlation(hp1,
     big_levels = [{"level": evolve.run(hp1, big_iterations), 
                    "hyperparameter": hp1,
                    "iterations": big_iterations}, 
-                    {"level": evolve.run(hp2, big_iterations),
-                     "hyperparameter": hp2,
-                     "iterations": big_iterations}]
+                  {"level": evolve.run(hp2, big_iterations),
+                   "hyperparameter": hp2,
+                   "iterations": big_iterations}]
     
-    swap_small_iterations = randint(0, 1) == 0
-    swap_big_iterations = randint(0, 1) == 0
+    swap_small_iterations = random.randint(0, 1) == 0
+    swap_big_iterations = random.randint(0, 1) == 0
     
     if swap_small_iterations:
+        print("Swap")
         small_levels[0], small_levels[1] = small_levels[1], small_levels[0]
     if swap_big_iterations:
+        print("Swap")
         big_levels[0], big_levels[1] = big_levels[1], big_levels[0]
         
     small_results = dict()
@@ -180,5 +189,5 @@ def plot_tuning(num_generations):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pass
+    test_correlation(evolve.bad_hyperparameters, Hyperparameters())
     
