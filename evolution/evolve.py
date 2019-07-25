@@ -119,7 +119,7 @@ def run(hyperparameters, max_iterations = MAX_ITERS, return_fitnesses = False):
         
         with Pool() as pool:
             print(" ---- Generation " + str(gen_itr) + " ----")
-            fits = list(map(fitness, population))          
+            fits = list(pool.map(fitness, population))          
             if DEBUG_PRINT:
                 print("Fits:", fits)
                 print("GEN FITS: " + str(fits))
