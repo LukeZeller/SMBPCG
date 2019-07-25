@@ -3,8 +3,6 @@ from config import config_mgr
 config_mgr.setup_environment()
 import jnius
 
-print(config_mgr.os.environ['CLASSPATH'])
-
 # --- Java class names ---
 ASTAR_AGENT_CLASS = 'competition.icegic.robin.AStarAgent'
 HUMAN_AGENT_CLASS = 'ch.idsia.ai.agents.human.HumanKeyboardAgent'
