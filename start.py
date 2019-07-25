@@ -64,8 +64,8 @@ def timing_run(hp, max_iterations):
     print("Time taken for run:", end - start, "(s)")
     return level, avgs, mins
 
-def plot_run_fitness(hp):
-    level, avgs, mins = timing_run(hp)
+def plot_run_fitness(hp, max_iterations):
+    level, avgs, mins = timing_run(hp, max_iterations)
     generation_numbers = [i for i in range(len(avgs))]
     for name, ys in zip(["avgs", "mins"], [avgs, mins]): 
         fig, ax = plt.subplots()
