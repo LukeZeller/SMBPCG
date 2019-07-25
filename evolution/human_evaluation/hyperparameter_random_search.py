@@ -22,6 +22,10 @@ def human_evaluate_hyperparameters(hp):
     level = run(hp)
     return evaluate_level(level)
 
+""" Hard-coded evaluator w/ an optima at (3, 4, 5) """
+def dummy_evaluate_hyperparameters(hp):
+    return -( (hp[0] - 3) ** 2 + (hp[1] - 4) ** 2 + (hp[2] - 5) ** 2)
+
 ## Random Search Helper Functions ##
 
 def random_hyperparameters():
@@ -48,17 +52,15 @@ def best_of(population_fitness, num):
 
 class PopulationGenerator:
     def __init__(self, 
+                 evaluator,
                  population_size = 4,
                  num_mutations_per_candidate = 4,
-                 step_size = 0.1,
-                 evaluator = None):
+                 step_size = 0.1):
         self.dimension = len(Hyperparameters._fields)
         self.population_size = population_size
         self.num_mutations_per_candidate = num_mutations_per_candidate
         self.step_size = step_size
-        self.evaluator = human_evaluate_hyperparameters \
-                             if evaluator is None \
-                             else evaluator
+        self.evaluator = evaluator
     
     def initial_population(self):
         population = []
@@ -149,4 +151,7 @@ class HyperparameterCache:
                           sort_keys = True, 
                           indent = 2,
                           separators=(',', ': '))
+    
+    def reset(self):
+        self._initialize()
     
