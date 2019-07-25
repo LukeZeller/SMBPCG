@@ -118,7 +118,7 @@ def run(hyperparameters, max_iterations = MAX_ITERS, return_fitnesses = False):
         best_fitness = INF
         
         with Pool() as pool:
-            fits = list(pool.map(fitness, population))          
+            fits = list(map(fitness, population))          
             if DEBUG_PRINT:
                 print("Fits:", fits)
                 print(" ---- Generation " + str(gen_itr) + " ----")
