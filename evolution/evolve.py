@@ -17,7 +17,7 @@ class Hyperparameters(NamedTuple):
     FAILURE_PERCENTAGE_COEFFICIENT : float = 1.0000
     ALL_FAILURE_COEFFICIENT : float = 1.0000
 
-bad_hyperparameters = Hyperparameters(0.0, 0.0, 0.0)
+bad_hyperparameters = Hyperparameters(0.1, 0.2, 0.3)
 
 # Number of times the A* agent is invoked on each sample during evolution
 TRIALS_PER_SAMPLE = 10
@@ -118,10 +118,10 @@ def run(hyperparameters, max_iterations = MAX_ITERS, return_fitnesses = False):
         best_fitness = INF
         
         with Pool() as pool:
+            print(" ---- Generation " + str(gen_itr) + " ----")
             fits = list(map(fitness, population))          
             if DEBUG_PRINT:
                 print("Fits:", fits)
-                print(" ---- Generation " + str(gen_itr) + " ----")
                 print("GEN FITS: " + str(fits))
                 print("GEN AVG: " + str(sum(fits) / len(fits)))
                 print("p_sz", p_sz, "len_fits", len(fits))
