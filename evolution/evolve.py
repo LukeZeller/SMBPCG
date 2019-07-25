@@ -114,21 +114,22 @@ def run(hyperparameters, return_fitnesses = False):
         p_sz = len(population)
         best_lv = None
         best_fitness = INF
-        fits = list(map(fitness, population))
-        print(" ---- Generation " + str(gen_itr) + " ----")
-        if DEBUG_PRINT:
-            print("Fits:", fits)
-            print("GEN FITS: " + str(fits))
-            print("GEN AVG: " + str(sum(fits) / len(fits)))
-            print("p_sz", p_sz, "len_fits", len(fits))
-        avg_fits.append(sum(fits) / len(fits))
-        min_fits.append(min(fits))
-        cma_es.tell(population, fits)
-        for i in range(p_sz):
-            if fits[i] <= best_fitness:
-                best_lv = population[i]
-                best_fitness = fits[i]
-        gen_itr += 1
+        
+        with Pool() as pool:
+            fits = list(pool.map(fitness, population))          
+            if DEBUG_PRINT:
+                print("Fits:", fits)
+                print(" ---- Generation " + str(gen_itr) + " ----")
+                print("GEN FITS: " + str(fits))
+                print("GEN AVG: " + str(sum(fits) / len(fits)))
+                print("p_sz", p_sz, "len_fits", len(fits))
+            avg_fits.append(sum(fits) / len(fits))
+            cma_es.tell(population, fits)
+            for i in range(p_sz):
+                if fits[i] <= best_fitness:
+                    best_lv = population[i]
+                    best_fitness = fits[i]
+            gen_itr += 1
 
     if DEBUG_PRINT:
         print("ALL GEN AVG FITS: " + str(avg_fits))
