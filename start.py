@@ -86,12 +86,14 @@ def test_correlation(hp1,
     
     generator_client.load_generator()
     assert hp1 != hp2
+    print("Iterations: ", small_iterations)
     small_levels = [{"level": evolve.run(hp1, small_iterations), 
                      "hyperparameter": hp1,
                      "iterations": small_iterations}, 
                     {"level": evolve.run(hp2, small_iterations), 
                      "hyperparameter": hp2,
                      "iterations": small_iterations}]
+    print("Iterations: ", big_iterations)
     big_levels = [{"level": evolve.run(hp1, big_iterations), 
                    "hyperparameter": hp1,
                    "iterations": big_iterations}, 
