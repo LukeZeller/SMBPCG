@@ -134,6 +134,7 @@ def run(hyperparameters, max_iterations = MAX_ITERS, return_fitnesses = False):
         
         start_append_time = time()
         avg_fits.append(sum(fits) / len(fits))
+        min_fits.append(min(fits))
         print("Time for append: ", time() - start_append_time)
         
         start_tell_time = time()
