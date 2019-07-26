@@ -51,8 +51,8 @@ def load_level_from_json(json_fname):
 
 def load_level_from_ascii(ascii_fname):
     with open(config_mgr.get_absolute_path(
-            'ascii/' + ascii_fname, LEVEL_DATA_DIR_PATH), 'r') as ascii_f:
-        ascii_f_lines = [line for line in ascii_f]
+            'text/' + ascii_fname, LEVEL_DATA_DIR_PATH), 'r') as ascii_f:
+        ascii_f_lines = [line.strip() for line in ascii_f]
         level = Level(width = len(ascii_f_lines[0]), height = len(ascii_f_lines))
         for y, row in enumerate(ascii_f_lines):
             for x, char in enumerate(row):
@@ -92,8 +92,8 @@ class Level(object):
         if y < 0 or y >= self.height:
             raise ValueError("Vertical position parameter y is out of bounds.")
 
-    def get_data(self, as_nparray = False):
-        if as_nparray:
+    def get_data(self, as_ndarray = False):
+        if as_ndarray:
             return np.copy(self.__tiles)
         return self.__tiles.tolist()
 
@@ -108,11 +108,11 @@ class Level(object):
     def set_tile_char(self, x, y, tile_c):
         self.__bounds_check(x, y)
         if tile_c not in char_int_map:
-            raise ValueError("Invalid tile character provided.")
+            raise ValueError("Invalid tile character [{0}] provided".format(tile_c))
         self.__tiles[y, x] = char_int_map[tile_c]
 
     def set_tile_int(self, x, y, tile_i):
         self.__bounds_check(x, y)
         if tile_i not in int_char_map:
-            raise ValueError("Invalid tile integer provided.")
+            raise ValueError("Invalid tile integer [{0}] provided".format(tile_i))
         self.__tiles[y, x] = tile_i

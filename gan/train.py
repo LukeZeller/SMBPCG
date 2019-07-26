@@ -17,14 +17,16 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
 
+import common.level as lvl
 from config import config_mgr
 from gan.models import dcgan, mlp
 
 
 GAN_DATA_REL = 'data/gan'
-GAN_DATA_DIR_PATH = config_mgr.get_absolute_path(LEVEL_DATA_REL)
-GAN_DATA_DIR = str(LEVEL_DATA_DIR_PATH)
+GAN_DATA_DIR_PATH = config_mgr.get_absolute_path(GAN_DATA_REL)
+GAN_DATA_DIR = str(GAN_DATA_DIR_PATH)
 
+DEFAULT_OUTPUT_FREQUENCY = 5000
 
 # List of levels on which to train the GAN if --level isn't specified
 # Note that SMB2 Japan levels 1-1 and 3-1 had heights of 12 and 15, respectively.
@@ -49,9 +51,11 @@ TRAINING_LEVELS = [
 ]
 
 def _load_level(level_fname):
-        level = lvl.load_level_from_ascii(level_fname)
-        if level.height != lvl.DEFAULT_LEVEL_HEIGHT:
-            raise ValueError("Level file must have height of 14.")
+    level = lvl.load_level_from_ascii(level_fname)
+    if level.height != lvl.DEFAULT_LEVEL_HEIGHT:
+        raise ValueError("Level file must have height of 14.")
+    return level
+    
 
 def _load_all_levels():
     levels = []
@@ -59,13 +63,14 @@ def _load_all_levels():
         levels.append(_load_level(level_fname))
     return levels
 
-def _extract_segments_from_level(level, width = DEFAULT_LEVEL_WIDTH):
+def _extract_segments_from_level(level, width = lvl.DEFAULT_LEVEL_WIDTH):
     n_segments = level.width - width + 1
     if n_segments <= 0:
         raise ValueError("Segment width cannot be greater than level width.")
+    level_data = level.get_data(as_ndarray=True)
     segments = []
     for x_offset in range(n_segments):
-        segments.append(level[ : , x_offset : x_offset + width])
+        segments.append(level_data[ : , x_offset : x_offset + width])
     return segments
 
 #Run with "python main.py"
@@ -84,7 +89,7 @@ def train(opt):
     # Format and create output directory for training data
     if opt.output is None:
         opt.output = 'gan_training_output'
-    output_dir = '{0}_{1}'.format(opt.experiment, seed)
+    output_dir = '{0}_{1}'.format(opt.output, seed)
     output_path = config_mgr.get_absolute_path(output_dir, GAN_DATA_DIR_PATH)
 
     os.system('mkdir {0}'.format(str(output_path)))
@@ -99,10 +104,10 @@ def train(opt):
 
     # Read all input files and organize into segments for training
     segments = []    
-    if opt.level_file == '':
+    if opt.level == '':
         levels = _load_all_levels()
     else:
-        levels = [_load_level(opt.level_file)]
+        levels = [_load_level(opt.level)]
     for level in levels:
         segments.extend(_extract_segments_from_level(level))
     X = np.array(segments)
@@ -119,7 +124,7 @@ def train(opt):
     # Quick sanity check on dimensions before proceeding
     assert (X_onehot.shape[0] == X.shape[0] and
             X_onehot.shape[1] == z_dims and
-            X_onehot.shape[2] == X.shpae[1] and
+            X_onehot.shape[2] == X.shape[1] and
             X_onehot.shape[3] == X.shape[2]
             )
     
@@ -273,8 +278,8 @@ def train(opt):
             print('[INFO] Training: [%d/%d][%d/%d][%d] Loss_D: %f Loss_G: %f Loss_D_real: %f Loss_D_fake %f'
                   % (epoch, opt.niter, i, num_batches, gen_iterations,
                      errD.data[0], errG.data[0], errD_real.data[0], errD_fake.data[0]))
-            if gen_iterations % 500 == 0:   #was 500
-
+            if gen_iterations % DEFAULT_OUTPUT_FREQUENCY == 0:   #was 500
+                
                 fake = netG(Variable(fixed_noise, volatile=True))
 
                 im = fake.data.cpu().numpy()
@@ -283,8 +288,8 @@ def train(opt):
 
                 im = combine_images( tiles2image( np.argmax( im, axis = 1) ) )
 
-                plt.imsave('{0}/mario_fake_samples_{1}.png'.format(output_dir, gen_iterations), im)
-                torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(output_dir, gen_iterations))
+                plt.imsave('{0}/mario_fake_samples_{1}.png'.format(output_path, gen_iterations), im)
+                torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(output_path, gen_iterations))
 
         # do checkpointing
         #torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
