@@ -144,6 +144,17 @@ def correlation_percentage():
             correlations += correlated
     assert total > 0
     return 100.0 * float(correlations) / total
+
+def correlation_test_script():
+    print("Just a quick run to test that it works on your system")
+    test_correlation(default_hyperparameters, bad_hyperparameters, 1, 2)
+    print("Okay now we're goint to test things for real")
+    for i in range(30):
+        print("Iteration ", i)
+        test_correlation(default_hyperparameters, bad_hyperparameters, 5, 20)
+    pct = correlation_percentage()
+    print(f"The % of times that a hyperparameter was better than the other, regardless of max_iters: {pct}%")
+    return pct
             
 ### Testing Hyperparameter Training ###
        
@@ -219,18 +230,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    test_1_1()
-    level = test_gan()
-    lv, fitness = test_fitness(True)
-    test_evolution(default_hyperparameters)
-    timing_run(default_hyperparameters, 20)
-    plot_run_fitness(default_hyperparameters, 5)
-    test_correlation(default_hyperparameters, bad_hyperparameters, 5, 20)
-    pct_correlation = correlation_percentage()
-    num_steps = num_steps_to_optima(100, dummy_evaluate_hyperparameters, 0.0) 
-    plotted_cache = plot_tuning(100, dummy_evaluate_hyperparameters)
-    cache = test_tuning()
-    
-    
-    
-    
+    pct = correlation_test_script()
