@@ -151,7 +151,7 @@ def correlation_test_script():
     print("Okay now we're goint to test things for real")
     for i in range(30):
         print("Iteration ", i)
-        test_correlation(default_hyperparameters, bad_hyperparameters, 5, 20)
+        test_correlation(default_hyperparameters, bad_hyperparameters, 3, 10)
     pct = correlation_percentage()
     print(f"The % of times that a hyperparameter was better than the other, regardless of max_iters: {pct}%")
     return pct
