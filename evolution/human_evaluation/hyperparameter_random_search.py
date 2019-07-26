@@ -1,5 +1,5 @@
 import numpy as np
-from common.constants import DEBUG_PRINT
+from common.constants import DEBUG_PRINT, CMA_ITERATIONS_FOR_HUMAN_EVALUATION
 from evolution.evolve import Hyperparameters, run
 from evolution.human_evaluation.rubric import input_rubric, rubric_score
 from common.agents import create_human_agent
@@ -20,7 +20,7 @@ def evaluate_level(level):
 
 def human_evaluate_hyperparameters(hp):
     print("Evaluating: ", hp)
-    level = run(hp)
+    level = run(hp, max_iterations = CMA_ITERATIONS_FOR_HUMAN_EVALUATION)
     return evaluate_level(level)
 
 """ Hard-coded evaluator w/ an optima at (3, 4, 5) """
