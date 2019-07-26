@@ -7,6 +7,11 @@ LEVEL_DATA_REL = 'data/full_levels'
 LEVEL_DATA_DIR_PATH = config_mgr.get_absolute_path(LEVEL_DATA_REL)
 LEVEL_DATA_DIR = str(LEVEL_DATA_DIR_PATH)
 
+LEVEL_OUTPUT_REL = 'data/generated_levels'
+LEVEL_OUTPUT_DIR_PATH = config_mgr.get_absolute_path(LEVEL_OUTPUT_REL)
+LEVEL_OUTPUT_DIR = str(LEVEL_OUTPUT_DIR_PATH)
+
+
 DEFAULT_LEVEL_HEIGHT = 14
 DEFAULT_LEVEL_WIDTH = 28
 
@@ -58,6 +63,35 @@ def load_level_from_ascii(ascii_fname):
             for x, char in enumerate(row):
                 level.set_tile_char(x, y, char)
     return level
+
+# The following functions each return a string representation of the level.
+# If the fname parameter is specified, they will also attempt to write the output
+# to data/level/X/fname where X IN ["json", "text"].
+
+def _save_string(rel_path, contents):
+    with open(config_mgr.get_absolute_path(
+            rel_path, LEVEL_OUTPUT_DIR_PATH), 'w') as f:
+        f.write(contents)
+
+def level_to_json_str(level, fname = None):
+    res_str = str(level.get_data())
+    if fname is not None:
+        rel_path = 'json/' + fname
+        _save_string(rel_path, res_str)
+    return res_str
+
+def level_to_ascii_str(level, fname = None):
+    # Warning: Do not read next 4 lines
+    res_str = '\n'.join(map(
+        lambda row: ''.join(map(lambda i: int_char_map[i], row)),
+        level.get_data()
+    )) + '\n'
+    # Thanks.
+    if fname is not None:
+        rel_path = 'text/' + fname
+        _save_string(rel_path, res_str)
+    return res_str
+
 
 class Level(object):
     # Initialize Level object with width / height or data

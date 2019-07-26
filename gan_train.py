@@ -22,6 +22,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--n_extra_layers', type=int, default=0, help='Number of extra layers on gen and disc')
     parser.add_argument('--output', default=None, help='Where to store samples and models')
+    parser.add_argument('--save_frequency', type=int, default=0, help='Number of iters between model file and sample output.')
+    parser.add_argument('--saveD', action='store_false', help='Save discriminator models along with generator. Necessary for multiple training sessions.')
     parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
     parser.add_argument('--level', default='', help='Name of level file (within data/full_levels/ascii directory).')
     parser.add_argument('--seed', type=int, default=-1, help='Manually set seed for training.')
