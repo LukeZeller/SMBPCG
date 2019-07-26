@@ -94,6 +94,10 @@ def train(opt):
 
     os.system('mkdir {0}'.format(str(output_path)))
 
+    if opt.save_frequency > 0:
+        output_frequencey = opt.save_frequency
+    else:
+        output_frequency = DEFAULT_OUTPUT_FREQUENCY
 
     cudnn.benchmark = True
 
@@ -278,7 +282,7 @@ def train(opt):
             print('[INFO] Training: [%d/%d][%d/%d][%d] Loss_D: %f Loss_G: %f Loss_D_real: %f Loss_D_fake %f'
                   % (epoch, opt.niter, i, num_batches, gen_iterations,
                      errD.data[0], errG.data[0], errD_real.data[0], errD_fake.data[0]))
-            if gen_iterations % DEFAULT_OUTPUT_FREQUENCY == 0:   #was 500
+            if gen_iterations % output_frequency == 0:   #was 500
                 
                 fake = netG(Variable(fixed_noise, volatile=True))
 
@@ -290,6 +294,8 @@ def train(opt):
 
                 plt.imsave('{0}/mario_fake_samples_{1}.png'.format(output_path, gen_iterations), im)
                 torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(output_path, gen_iterations))
+                if opt.saveD:
+                    torch.save(netD.state_dict(), '{0}/netD_epoch_{1}.pth'.format(output_path, gen_iterations))
 
         # do checkpointing
         #torch.save(netG.state_dict(), '{0}/netG_epoch_{1}.pth'.format(opt.experiment, epoch))
