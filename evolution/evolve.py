@@ -12,6 +12,7 @@ from gan import generator_client
 from typing import NamedTuple
 from multiprocessing import Pool
 from time import time
+from tqdm import tqdm
 
 class Hyperparameters(NamedTuple):
     SUCCESS_COEFFICIENT : float = 0.0025
@@ -114,42 +115,45 @@ def run(hyperparameters, max_iterations, return_fitnesses = False):
     print("Pool sz: " + str(os.cpu_count()))
 
     p_sz = 0
+    progress_bar = tqdm(total = max_iterations)
     while not cma_es.stop():
+        start_init_time = time()
         population = cma_es.ask()
         p_sz = len(population)
-        print("Population size: ", p_sz)
         best_lv = None
         best_fitness = INF
-        
-        start_total_time = time()
-        print(" ---- Generation " + str(gen_itr) + " ----")
-        
-        start_fitness_time = time()
+        total_init_time = time() - start_init_time
+                
         if PARALLELIZE_ITERATIONS:
             with Pool() as pool:
                 fits = list(pool.map(fitness, population))
         else:
             fits = list(map(fitness, population))
-        print("Time for fitness: ", time() - start_fitness_time)
         
         start_append_time = time()
         avg_fits.append(sum(fits) / len(fits))
         min_fits.append(min(fits))
-        print("Time for append: ", time() - start_append_time)
+        total_append_time = time() - start_append_time
         
         start_tell_time = time()
         cma_es.tell(population, fits)
-        print("Time for tell: ", time() - start_tell_time)
+        total_tell_time = time() - start_tell_time
 
         start_best_find_time = time()
         for i in range(p_sz):
             if fits[i] <= best_fitness:
                 best_lv = population[i]
                 best_fitness = fits[i]
-        print("Time for best fitness find: ", time() - start_best_find_time)
+        total_best_find_time = time() - start_best_find_time
+        
+        assert total_init_time < 5
+        assert total_append_time < 5
+        assert total_tell_time < 1
+        assert total_best_find_time < 5
         
         gen_itr += 1
-        print("Total loop time: ", time() - start_total_time)
+        progress_bar.update(1)
+    progress_bar.close()
 
     if DEBUG_PRINT:
         print("ALL GEN AVG FITS: " + str(avg_fits))
@@ -170,7 +174,7 @@ def run(hyperparameters, max_iterations, return_fitnesses = False):
         print("Best Latent Vector (According to manual bookkeeping): " + ', '.join(str(best_lv).split()))
         print("Corresponding fitness: " + str(fitness(best_lv)))
         print("Saved best fitness: " + str(best_fitness))
-    print("Type of best_lv_f: ", type(best_lv_f))   
+        print("Type of best_lv_f: ", type(best_lv_f))   
     if return_fitnesses:
         return generator_client.apply_generator(best_lv_f), avg_fits, min_fits
     else:
