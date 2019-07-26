@@ -165,7 +165,7 @@ def num_steps_to_optima(num_generations,
                                                step_size = 5.0,
                                                adaptive_step = True)
     cache = HyperparameterCache(generator = population_generator, 
-                                storage_file = "results/data/hyperparameter_optima_check_cache.json")
+                                storage_file = "results/data/hyperparameters/hyperparameter_optima_check_cache.json")
     cache.reset()
     for generation in range(num_generations):
         candidate, fitness = cache.best()
@@ -192,7 +192,7 @@ def plot_tuning(num_generations, evaluation):
                                                step_size = 5.0,
                                                adaptive_step = True)
     cache = HyperparameterCache(generator = population_generator, 
-                                storage_file = "results/data/hyperparameter_plotting_cache.json")
+                                storage_file = "results/data/hyperparameters/hyperparameter_plotting_cache.json")
     cache.reset()
     for generation in range(num_generations):
         candidate, fitness = cache.best()
