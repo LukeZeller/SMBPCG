@@ -12,6 +12,8 @@ import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.EvaluationOptions;
 import ch.idsia.tools.ToolsConfigurator;
 
+import java.util.Scanner;
+
 public class SimulationHandler {
 
     public static void main(String[] args) {
@@ -25,6 +27,7 @@ public class SimulationHandler {
 
     private Simulation simulation;
     private EvaluationOptions evaluationOptions;
+    private Level currentLevel;
 
     public SimulationHandler() {
         evaluationOptions = new CmdLineOptions(new String[]{""});
@@ -40,11 +43,11 @@ public class SimulationHandler {
     }
 
     public Level getLevel() {
-        return evaluationOptions.getLevel();
+        return currentLevel;
     }
 
     public void setLevel(Level level) {
-        evaluationOptions.setLevel(level);
+        currentLevel = level;
     }
 
     public boolean isMaxFPS() {
@@ -81,7 +84,7 @@ public class SimulationHandler {
     }
 
     public EvaluationInfo invoke() {
+        evaluationOptions.setLevel(currentLevel.copy());
         return simulation.simulateOneLevel();
     }
-
 }

@@ -44,17 +44,19 @@ def load_generator(model_file=DEF_GEN_MODEL_FILE,
 
 
 def apply_generator(latent_vector,
-                    nz=DEF_LV_LEN):
-    if type(latent_vector) is list:
-        latent_vector = np.array(latent_vector)
+                    nz=DEF_LV_LEN): 
+    with torch.no_grad():
 
-    lv_tensor = torch.FloatTensor(latent_vector).view(1, nz, 1, 1)
-    level_tensor = generator(Variable(lv_tensor, volatile=True))
+      if type(latent_vector) is list:
+          latent_vector = np.array(latent_vector)
 
-    level_arr = level_tensor.data.cpu().numpy()
-    level_arr = level_arr[:, :, :14, :28]  # Cut of rest to fit the 14x28 tile dimensions
-    level_arr = np.argmax(level_arr, axis=1)
+      lv_tensor = torch.FloatTensor(latent_vector).view(1, nz, 1, 1)
+      level_tensor = generator(Variable(lv_tensor))
 
-    # latent vector was processed with batch size of one so level_arr will be a length 1
-    # array of levels
-    return Level(data=level_arr[0])
+      level_arr = level_tensor.data.cpu().numpy()
+      level_arr = level_arr[:, :, :14, :28]  # Cut of rest to fit the 14x28 tile dimensions
+      level_arr = np.argmax(level_arr, axis=1)
+
+      # latent vector was processed with batch size of one so level_arr will be a length 1
+      # array of levels
+      return Level(data=level_arr[0])

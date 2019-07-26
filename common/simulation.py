@@ -1,10 +1,10 @@
-import jnius
 from config import config_mgr
 from common import constants
 import common.agents
 import common.level
 
 config_mgr.setup_environment()
+import jnius
 
 # --- Java class names ---
 EVALUATION_INFO_CLASS = 'ch.idsia.tools.EvaluationInfo'
@@ -99,7 +99,6 @@ class _EvaluationInfoProxy(object):
     def level_passed(self):
         return self.lengthOfLevelPassedPhys == constants.LEVEL_LENGTH
 
-
 class SimulationProxy(object):
     @staticmethod
     def from_json_file(json_fname, human_tested=False):
@@ -138,6 +137,13 @@ class SimulationProxy(object):
 
     def invoke(self):
         self.__eval_info_proxy.set_instance(self.__j_sim_handler.invoke())
+        
+    def invokeTillStopped(self):
+        while True:
+            self.invoke()
+            inp = input("Type STOP to stop playing level (to continue, enter anything else): ")
+            if inp.upper() == "STOP":
+                break
 
     def __check_completion(self):
         if not self.__eval_info_proxy.has_instance:

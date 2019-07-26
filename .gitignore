@@ -17,3 +17,10 @@ outcmaes/
 
 # Temporarily ignore directory holding old files (directory should be removed eventually)
 gan/original_files/
+
+# Ignore images stored in results
+results/**/*.png
+
+# Ignore storage and cache files in results
+results/**/*.txt
+results/**/*.json

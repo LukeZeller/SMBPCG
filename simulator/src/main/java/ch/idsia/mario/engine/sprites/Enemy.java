@@ -400,7 +400,7 @@ public class Enemy extends Sprite implements Cloneable
             winged = false;
             hPic = -hPic;
             yPicO = -yPicO + 16;
-            System.out.println("bumpCheck");
+            // System.out.println("bumpCheck");
         }
     }
 

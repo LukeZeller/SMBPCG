@@ -1,6 +1,5 @@
-from common.constants import KEY_JUMP
-from evolution.check_moves import can_complete, simulate_level_with_moves
-from multiprocessing import Pool
+from common.constants import KEY_JUMP, DEBUG_PRINT
+from common.simulate_agent import can_complete_with_moves
 from functools import partial
 import time
 
@@ -8,14 +7,16 @@ import time
 def number_of_shifts_and_jumps(info, level):
     moves = info.marioMoves
     jump_starts, jump_ends = _get_jumps(moves)
-    print("Before removing redundant")
-    print(jump_starts, jump_ends)
-    moves, jump_starts, jump_ends = _removed_redundant_jumps(level,
-                                                             moves,
+    if DEBUG_PRINT:
+        print("Before removing redundant")
+        print(jump_starts, jump_ends)
+    moves, jump_starts, jump_ends = _removed_redundant_jumps(level, 
+                                                             moves, 
                                                              jump_starts,
                                                              jump_ends)
-    print("After removing redundant")
-    print(jump_starts, jump_ends)
+    if DEBUG_PRINT:
+        print("After removing redundant")
+        print(jump_starts, jump_ends)
     return _calculate_number_of_shifts_and_jumps(level, moves, jump_starts, jump_ends)
 
 
@@ -23,7 +24,8 @@ def _get_jumps(moves):
     jump_starts = []
     jump_ends = []
     jump_previously_pressed = False
-    print("Moves size: ", moves.size())
+    if DEBUG_PRINT:
+        print("Moves size: ", moves.size())
     for frame in range(moves.size()):
         keys_pressed = moves.get(frame)
         jump_currently_pressed = keys_pressed.isPressed(KEY_JUMP)
@@ -44,7 +46,7 @@ def _removed_redundant_jumps(level, moves, jump_starts, jump_ends):
     for i, (jump_start, jump_end) in enumerate(zip(jump_starts, jump_ends)):
         new_moves = moves.copy()
         new_moves.removeJumpsInRange(jump_start, jump_end)
-        if can_complete(level, new_moves, False):
+        if can_complete_with_moves(level, new_moves, False):
             redundant_jump_indices.add(i)
             moves = new_moves.copy()
     jump_starts = [jump
@@ -60,7 +62,7 @@ def _calculate_number_of_shifts_and_jumps(level, moves, jump_starts, jump_ends):
     start_time = time.perf_counter()
 
     num_jumps = len(jump_starts)
-    jump_index_to_num_shifts = partial(number_of_shifts_for_specific_jump,
+    jump_index_to_num_shifts = partial(_number_of_shifts_for_specific_jump,
                                        level,
                                        moves,
                                        jump_starts,
@@ -69,8 +71,8 @@ def _calculate_number_of_shifts_and_jumps(level, moves, jump_starts, jump_ends):
     num_shifts = sum(num_shifts_per_jump)
 
     end_time = time.perf_counter()
-    print("Time taken (s): ", end_time - start_time)
-
+    if DEBUG_PRINT:
+        print("Time taken (s): ", end_time - start_time)
     return num_shifts, num_jumps
 
 
@@ -89,7 +91,7 @@ def _number_of_shifts_for_specific_jump(level, moves, jump_starts, jump_ends, ju
             new_moves = moves.copy()
             new_moves.shiftedJump(original_start, original_end,
                                   new_start, new_end)
-            if can_complete(level, new_moves, False):
+            if can_complete_with_moves(level, new_moves, False):
                 valid_shifts_for_jump += 1
                 break
     return valid_shifts_for_jump

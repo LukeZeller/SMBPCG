@@ -1,9 +1,7 @@
 from config import config_mgr
-import jnius
 
 config_mgr.setup_environment()
-
-# print(config_mgr.os.environ['CLASSPATH'])
+import jnius
 
 # --- Java class names ---
 ASTAR_AGENT_CLASS = 'competition.icegic.robin.AStarAgent'
