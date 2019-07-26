@@ -94,7 +94,7 @@ def train(opt):
 
     os.system('mkdir {0}'.format(str(output_path)))
 
-    if opt.save_freqency > 0:
+    if opt.save_frequency > 0:
         output_frequencey = opt.save_frequency
     else:
         output_frequency = DEFAULT_OUTPUT_FREQUENCY
