@@ -145,11 +145,11 @@ def correlation_percentage():
     assert total > 0
     return 100.0 * float(correlations) / total
 
-def correlation_test_script():
+def correlation_test_script(iterations):
     print("Just a quick run to test that it works on your system")
     test_correlation(default_hyperparameters, bad_hyperparameters, 1, 2)
     print("Okay now we're goint to test things for real")
-    for i in range(30):
+    for i in range(iterations):
         print("Iteration ", i)
         test_correlation(default_hyperparameters, bad_hyperparameters, 3, 10)
     pct = correlation_percentage()
@@ -230,4 +230,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pct = correlation_test_script()
+    pct = correlation_test_script(15)
