@@ -1,6 +1,5 @@
 # Current entry point for python project
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, \
