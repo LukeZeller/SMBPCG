@@ -234,4 +234,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    plot_run_fitness(default_hyperparameters, 2)
+    plot_run_fitness(default_hyperparameters, 750)
