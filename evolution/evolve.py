@@ -3,7 +3,7 @@ import math
 import os
 import cma
 
-from common.constants import DEBUG_PRINT, INF
+from common.constants import DEBUG_PRINT, INF, EPS
 from evolution.level_difficulty.difficulty \
     import calculate_difficulty_for_failure, calculate_difficulty_for_success
 from common.simulate_agent \
@@ -13,11 +13,13 @@ from typing import NamedTuple
 from multiprocessing import Pool
 from time import time
 from tqdm import tqdm
+from common.simulation import SimulationProxy
+
 
 class Hyperparameters(NamedTuple):
-    SUCCESS_COEFFICIENT : float = 0.0025
-    FAILURE_PERCENTAGE_COEFFICIENT : float = 1.0000
-    ALL_FAILURE_COEFFICIENT : float = 1.0000
+    SUCCESS_COEFFICIENT : float = 1.0
+    FAILURE_PERCENTAGE_COEFFICIENT : float = 400.0
+    ALL_FAILURE_COEFFICIENT : float = 1.0
 
 default_hyperparameters = Hyperparameters()
 bad_hyperparameters = Hyperparameters(0.1, 0.2, 0.3)
@@ -28,10 +30,17 @@ MAX_ITERS = 50
 PARALLELIZE_ITERATIONS = True
 
 ### WARNING: CONSTRUCTION ZONE ###
+LEVEL_LENGTH = 704
+
+HARD_JUMP_WEIGHT = 10
+MEDIUM_JUMP_WEIGHT = 5
+EASY_JUMP_WEIGHT = 3
+TRIVIAL_JUMP_WEIGHT = 1
+
+###
 
 cma_es = None
 
-# Sample fitness function based on EvalutionInfo information
 def _fitness(level):
     info = simulate_level_with_astar(level)
     passed = info.level_passed()
@@ -41,18 +50,17 @@ def _fitness(level):
         return _fitness_failure(info, level)
     else:
         return _fitness_success(info, level)
-    
+
 def _fitness_success(eval_info, level):
     assert eval_info.level_passed()
-    difficulty = calculate_difficulty_for_success(eval_info, level)
-    fitness = -difficulty # Negate difficulty since fitness is minimized
-    return fitness
+    return eval_info.trivialJumpActionsPerformed * TRIVIAL_JUMP_WEIGHT + \
+           eval_info.easyJumpActionsPerformed * EASY_JUMP_WEIGHT + \
+           eval_info.mediumJumpActionsPerformed * MEDIUM_JUMP_WEIGHT + \
+           eval_info.hardJumpActionsPerformed * HARD_JUMP_WEIGHT
     
 def _fitness_failure(eval_info, level):
     assert not eval_info.level_passed()
-    difficulty = calculate_difficulty_for_failure(eval_info)
-    fitness = difficulty
-    return fitness
+    return - eval_info.computeDistancePassed() / LEVEL_LENGTH
 
 def _multiple_run_fitness(level, hp):
     """ 

@@ -105,10 +105,10 @@ def test_correlation(hp1,
     swap_big_iterations = random.randint(0, 1) == 0
     
     if swap_small_iterations:
-        print("Swap")
+        print("SwapSmall")
         small_levels[0], small_levels[1] = small_levels[1], small_levels[0]
     if swap_big_iterations:
-        print("Swap")
+        print("SwapBig")
         big_levels[0], big_levels[1] = big_levels[1], big_levels[0]
         
     small_results = dict()
@@ -230,4 +230,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pct = correlation_test_script(15)
+    level, avgs, mins = evolve.run(default_hyperparameters, 2, True)
