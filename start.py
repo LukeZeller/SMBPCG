@@ -11,7 +11,7 @@ from common.simulate_agent import simulate_level_with_human, replay_level_with_h
 from evolution import evolve
 from evolution.evolve import default_hyperparameters, bad_hyperparameters
 from gan import generator_client
-from common.plotting import plot_to_file
+from common.plotting import plot_to_file, _get_unique_file
 from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, \
            HyperparameterCache, \
@@ -20,6 +20,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 import random
+import json
 
 ### Testing Level Playing ###
 
@@ -233,4 +234,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    plot_run_fitness(default_hyperparameters, 750)
+    plot_run_fitness(default_hyperparameters, 1)
