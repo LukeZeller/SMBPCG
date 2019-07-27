@@ -11,7 +11,7 @@ from common.simulate_agent import simulate_level_with_human, replay_level_with_h
 from evolution import evolve
 from evolution.evolve import default_hyperparameters, bad_hyperparameters
 from gan import generator_client
-from common.plotting import plot_to_file
+from common.plotting import plot_to_file, _get_unique_file
 from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, \
            HyperparameterCache, \
@@ -20,6 +20,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 import random
+import json
 
 ### Testing Level Playing ###
 
@@ -71,6 +72,7 @@ def timing_run(hp, max_iterations):
 def plot_run_fitness(hp, max_iterations):
     level, avgs, mins = timing_run(hp, max_iterations)
     generation_numbers = [i for i in range(len(avgs))]
+    
     for name, ys in zip(["Average", "Minimum"], [avgs, mins]): 
         plot_to_file(title = f"{name} Fitness Value per Generation",
                      xs = generation_numbers, 
@@ -78,6 +80,8 @@ def plot_run_fitness(hp, max_iterations):
                      xlabel = "Generation Number",
                      ylabel = f"{name} Fitness",
                      file_path = f"results/plots/fitness/{name}_cma_fitness_per_generation.png")
+        with open(_get_unique_file(f"results/data/fitness/{name}_cma_fitness_per_generation.txt"), 'w') as json_file:
+            json.dump(ys, json_file)
     return level
 
 def test_correlation(hp1,
@@ -230,4 +234,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    level, avgs, mins = evolve.run(default_hyperparameters, 2, True)
+    plot_run_fitness(default_hyperparameters, 2)
