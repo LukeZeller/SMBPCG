@@ -3,7 +3,7 @@ import math
 import os
 import cma
 
-from common.constants import DEBUG_PRINT, INF
+from common.constants import DEBUG_PRINT, INF, LEVEL_LENGTH
 from evolution.level_difficulty.difficulty \
     import calculate_difficulty_for_failure, calculate_difficulty_for_success
 from common.simulate_agent \
@@ -46,13 +46,13 @@ def _fitness_success(eval_info, level):
     assert eval_info.level_passed()
     difficulty = calculate_difficulty_for_success(eval_info, level)
     fitness = -difficulty # Negate difficulty since fitness is minimized
-    return fitness
+    return fitness - 1 # Subtract 1 in order for success fitness to always be smaller 
+                       # than failure fitness (which has a min of -1)
     
 def _fitness_failure(eval_info, level):
     assert not eval_info.level_passed()
-    difficulty = calculate_difficulty_for_failure(eval_info)
-    fitness = difficulty
-    return fitness
+    pct_completed = float(eval_info.lengthOfLevelPassedPhys) / LEVEL_LENGTH
+    return -pct_completed
 
 def _multiple_run_fitness(level, hp):
     """ 
