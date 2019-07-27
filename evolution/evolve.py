@@ -15,9 +15,9 @@ from time import time
 from tqdm import tqdm
 
 class Hyperparameters(NamedTuple):
-    SUCCESS_COEFFICIENT : float = 0.0025
-    FAILURE_PERCENTAGE_COEFFICIENT : float = 1.0000
-    ALL_FAILURE_COEFFICIENT : float = 1.0000
+    SUCCESS_COEFFICIENT : float = 1.0
+    FAILURE_PERCENTAGE_COEFFICIENT : float = 400.0
+    ALL_FAILURE_COEFFICIENT : float = 1.0
 
 default_hyperparameters = Hyperparameters()
 bad_hyperparameters = Hyperparameters(0.1, 0.2, 0.3)

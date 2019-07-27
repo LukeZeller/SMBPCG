@@ -71,6 +71,7 @@ def timing_run(hp, max_iterations):
 def plot_run_fitness(hp, max_iterations):
     level, avgs, mins = timing_run(hp, max_iterations)
     generation_numbers = [i for i in range(len(avgs))]
+    
     for name, ys in zip(["Average", "Minimum"], [avgs, mins]): 
         plot_to_file(title = f"{name} Fitness Value per Generation",
                      xs = generation_numbers, 
@@ -78,6 +79,8 @@ def plot_run_fitness(hp, max_iterations):
                      xlabel = "Generation Number",
                      ylabel = f"{name} Fitness",
                      file_path = f"results/plots/fitness/{name}_cma_fitness_per_generation.png")
+        with open(_get_unique_file(f"results/data/fitness/{name}_cma_fitness_per_generation.txt"), 'w') as json_file:
+            json.dump(ys, json_file)
     return level
 
 def test_correlation(hp1,
@@ -230,4 +233,4 @@ def plot_tuning(num_generations, evaluation):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pct = correlation_test_script(15)
+    plot_run_fitness(default_hyperparameters, 750)
