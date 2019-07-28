@@ -92,7 +92,7 @@ class PopulationGenerator:
                                             mutated_candidate_fitness))
             possible_candidates.append((candidate, fitness))
         if DEBUG_PRINT:
-            print("Iteration: ", self.iteration, "Radius: ", radius)
+            print("Iteration: ", self.iteration, "Radius: ", self.radius())
         self.iteration += 1
         return best_of(possible_candidates, self.population_size)
     
