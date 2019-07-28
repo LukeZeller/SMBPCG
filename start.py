@@ -19,6 +19,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
            dummy_evaluate_hyperparameters
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
+from common.level import load_level_from_ascii_str, level_to_ascii_str
 import random
 import json
 
@@ -40,6 +41,17 @@ def test_gan():
     simulate_level_with_human(level)
     print("Evaluate level:")
     return evaluate_level(level)
+
+### Test Textual level Representation ###
+    
+def test_level_to_ascii_and_back():
+    level = random_level()
+    ascii_repr = level_to_ascii_str(level)
+    level_copy = load_level_from_ascii_str(ascii_repr)
+    assert level_copy.width == level.width
+    assert level_copy.height == level.height
+    assert ascii_repr == level_to_ascii_str(level_copy)
+    print("Checks passed!")
 
 ### Testing Level Fitness ###
 
