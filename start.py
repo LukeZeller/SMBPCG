@@ -26,14 +26,18 @@ import json
 
 def test_1_1():
     play_1_1()
-
-def test_gan():
+    
+def random_level():
     generator_client.load_generator()
     latent_vector = np.random.uniform(-1, 1, 32)
+    print("Latent vector:\n", latent_vector)
     level = generator_client.apply_generator(latent_vector)
+    return level
+
+def test_gan():
+    level = random_level()
     print("Play level once:")
     simulate_level_with_human(level)
-    print("Latent vector:\n", latent_vector)
     print("Evaluate level:")
     return evaluate_level(level)
 
