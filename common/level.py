@@ -57,10 +57,12 @@ def load_level_from_json(json_fname):
 def load_level_from_ascii(ascii_fname):
     with open(config_mgr.get_absolute_path(
             'text/' + ascii_fname, LEVEL_DATA_DIR_PATH), 'r') as ascii_f:
-        return load_level_from_ascii_string(ascii_f.read())
+        return load_level_from_ascii_str(ascii_f.read())
 
-def load_level_from_ascii_string(s):
+def load_level_from_ascii_str(s):
     lines = [line.strip() for line in s.split('\n')]
+    while lines and not lines[-1]:
+        lines.pop()
     level = Level(width = len(lines[0]), height = len(lines))
     for y, row in enumerate(lines):
         for x, char in enumerate(row):
