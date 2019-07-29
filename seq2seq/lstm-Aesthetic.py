@@ -172,7 +172,7 @@ if __name__ == '__main__':
     model.cuda()
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
-        model = nn.DistributedDataParallel(model)
+        model = nn.DataParallel(model)
 
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.1)
