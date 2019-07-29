@@ -10,7 +10,7 @@ from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, \
 from common.simulation import SimulationProxy, play_1_1
 from common.simulate_agent import simulate_level_with_human, replay_level_with_human
 from evolution import evolve
-from evolution.evolve import default_hyperparameters, bad_hyperparameters
+from evolution.evolve import default_hyperparameters, bad_hyperparameters, Hyperparameters
 from gan import generator_client
 from common.plotting import plot_to_file, _get_unique_file
 from evolution.human_evaluation.hyperparameter_random_search \
@@ -258,18 +258,6 @@ def plot_tuning(num_generations, evaluation):
                      file_path = f"results/plots/hyperparameters/{y_axis_name}_per_random_search_generation.png")
     return cache
 
-def hp_random_search_script(iterations):
-    print("Initial generation")
-    cache = test_tuning()
-    for i in range(iterations):
-        print("Iteration: ", i)
-        cache.get_next_generation()
-        if cache.stop():
-            print("Ending early because radius is too small")
-            break
-    print("Best hyperparameters: ", cache.best())
-    return cache.best()
-
 ## Pipeline
     
 def save_latent_vector(lv, name, fitness = None):
@@ -289,6 +277,18 @@ def save_level(level, name, is_pre_lstm):
     text = level_to_ascii_str(level)
     with open(_get_unique_file(f"{root_dir}/level_asciis/{lstm_dir}/{name}.txt"), 'w') as level_file:
         print(text, file = level_file)
+        
+def hp_random_search_script(iterations):
+    print("Initial generation")
+    cache = test_tuning()
+    for i in range(iterations):
+        print("Iteration: ", i)
+        cache.get_next_generation()
+        if cache.stop():
+            print("Ending early because radius is too small")
+            break
+    print("Best hyperparameters: ", cache.best()[0])
+    return cache.best()[0]
     
 def generate_best_level_for_hyperparameters(name, hp, cma_iterations, number_of_level_segments):
     merged_level = Level(0)
@@ -312,18 +312,21 @@ def clean_level(name, level):
     save_level(cleaned_level, name, is_pre_lstm = False)
     return cleaned_level
 
-def pipeline(name, hp, cma_iterations, number_of_level_segments):
-    identifier = f"{name}_{cma_iterations}_{number_of_level_segments}"
-    whole_level = generate_best_level_for_hyperparameters(name = identifier,
-                                                          hp = hp,
-                                                          cma_iterations = cma_iterations,
-                                                          number_of_level_segments = number_of_level_segments)
-    cleaned_level = clean_level(name = identifier, level = whole_level)
+def pipeline(name):
+    best_hp = hp_random_search_script(15)
+    whole_level = generate_best_level_for_hyperparameters(name = name,
+                                                          hp = best_hp,
+                                                          cma_iterations = 750,
+                                                          number_of_level_segments = 7)
+    cleaned_level = clean_level(name = name, level = whole_level)
     return cleaned_level
     
 ### Experiment Below ###
 
 if __name__ == '__main__':
     pipeline_name = 'test'
-    level = generate_best_level_for_hyperparameters(pipeline_name, default_hyperparameters, 1, 3)
+    level = generate_best_level_for_hyperparameters(pipeline_name, 
+                                                    Hyperparameters(2.09, 5.83, 7.18), 
+                                                    1, 
+                                                    number_of_level_segments = 3)
     cleaned_level = clean_level(pipeline_name, level)
