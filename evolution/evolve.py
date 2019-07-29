@@ -27,7 +27,7 @@ bad_hyperparameters = Hyperparameters(0.1, 0.2, 0.3)
 # Number of times the A* agent is invoked on each sample during evolution
 TRIALS_PER_SAMPLE = 10
 MAX_ITERS = 50
-PARALLELIZE_ITERATIONS = False
+PARALLELIZE_ITERATIONS = True
 
 # ###  WARNING: CONSTRUCTION ZONE ###
 
