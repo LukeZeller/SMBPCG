@@ -60,10 +60,8 @@ public class MarioLevelViewer {
      */
     public static void saveLevel(Level level, String name, boolean clipBuffer) throws IOException {
         BufferedImage image = getLevelImage(level, clipBuffer);
-
-
+        
         File file = new File(name + ".jpg");
         ImageIO.write(image, "jpg", file);
-        System.out.println("File saved: " + file);
     }
 }
