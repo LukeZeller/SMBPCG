@@ -21,8 +21,8 @@ pipe = ["<", ">", "[", "]"]
 revTileMapping = {v: k for k, v in tileMapping.items()}
 
 DEF_LSTM_MODEL_FILE = 'lstm_2_2.pth'
-DEF_EMBEDDING_DIM = 256
-DEF_HIDDEN_DIM = 256
+DEF_EMBEDDING_DIM = 64
+DEF_HIDDEN_DIM = 64
 
 lstm = None
 def load_lstm(model_file = DEF_LSTM_MODEL_FILE,
@@ -46,9 +46,6 @@ def load_lstm(model_file = DEF_LSTM_MODEL_FILE,
         lstm.eval()
 
 def apply_lstm(level_as_text):
-    if type(level) is not level.Level:
-        raise TypeError("function apply_lstm() expects a Level class.")
-
     level_by_cols = []
     level_by_rows = np.array([list(line) for line in level_as_text.split('\n')])
     level_by_rows = level_by_rows[:, :-1]
