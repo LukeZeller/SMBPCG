@@ -2,15 +2,16 @@ import torch
 import torch.nn as nn
 import argparse
 import numpy as np
-
 from config import config_mgr
 from common import level
 from seq2seq.models.lstm_tagger import LSTMTagger
+
 
 def prepare_sequence(seq, to_ix):
     idxs = [to_ix[w] for w in seq]
     res = torch.tensor(idxs, dtype=torch.long).cuda()
     return res
+
 
 tileMapping = {"X": 0, "S": 1, "-": 2, "?": 3, "Q": 4,
                "E": 5, "<": 6, ">": 7, "[": 8, "]": 9}
@@ -23,25 +24,31 @@ DEF_EMBEDDING_DIM = 64
 DEF_HIDDEN_DIM = 64
 
 lstm = None
-def load_lstm(model_file = DEF_LSTM_MODEL_FILE,
-              embedding_dim = DEF_EMBEDDING_DIM,
-              hidden_dim = DEF_HIDDEN_DIM,
-              force_reload = False):
+
+
+def load_lstm(model_file=DEF_LSTM_MODEL_FILE,
+              embedding_dim=DEF_EMBEDDING_DIM,
+              hidden_dim=DEF_HIDDEN_DIM,
+              force_reload=False):
     global lstm
 
     if lstm is None or force_reload:
         assert torch.cuda.is_available()
         torch.cuda.set_device(0)
 
-        lstm = LSTMTagger(embedding_dim, hidden_dim, len(tileMapping), len(tileMapping))
+        lstm = LSTMTagger(embedding_dim, hidden_dim, len(tileMapping),
+                          len(tileMapping))
         lstm.cuda()
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
             lstm = nn.DataParallel(lstm)
 
-        model_path = config_mgr.get_absolute_path('seq2seq/trained_nets/' + model_file)
-        lstm.load_state_dict(torch.load(config_mgr.get_absolute_path(model_path)))
+        model_path = config_mgr.get_absolute_path('seq2seq/trained_nets/' +
+                                                  model_file)
+        lstm.load_state_dict(torch.load(config_mgr
+                                        .get_absolute_path(model_path)))
         lstm.eval()
+
 
 def apply_lstm(level_as_text):
     level_by_cols = []
@@ -65,7 +72,8 @@ def apply_lstm(level_as_text):
         fixed_level = np.reshape(np.array(fixed_level), (-1, 14))
         fixed_level = fixed_level.transpose((1, 0))
 
-    return level.Level(data = fixed_level)
+    return level.Level(data=fixed_level)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
