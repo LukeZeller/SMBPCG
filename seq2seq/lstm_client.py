@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import argparse
-from tqdm import tqdm
 import numpy as np
 
 from config import config_mgr
@@ -62,7 +60,7 @@ def apply_lstm(level_as_text):
         tag_scores = lstm(inputs)
         values, indices = torch.max(tag_scores, 1)
         fixed_level = []
-        for j in tqdm(range(len(indices))):
+        for j in range(len(indices)):
             fixed_level.append(indices[j].item())
         fixed_level = np.reshape(np.array(fixed_level), (-1, 14))
         fixed_level = fixed_level.transpose((1, 0))
