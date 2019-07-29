@@ -47,8 +47,9 @@ def load_lstm(model_file = DEF_LSTM_MODEL_FILE,
 
 def apply_lstm(level_as_text):
     level_by_cols = []
-    level_by_rows = np.array([list(line) for line in level_as_text.split('\n')])
-    level_by_rows = level_by_rows[:, :-1]
+    level_by_rows = [list(line) for line in level_as_text.split('\n')]
+    while level_by_rows and not level_by_rows[-1]:
+        level_by_rows.pop()
     # We read in a text file version the level into a 2-D array
     # However, the LSTM will read the level column by column
     # So, it is necessary to swap rows and columns and then flatten the level
@@ -62,11 +63,11 @@ def apply_lstm(level_as_text):
         values, indices = torch.max(tag_scores, 1)
         fixed_level = []
         for j in tqdm(range(len(indices))):
-            fixed_level.append(revTileMapping[indices[j].item()])
+            fixed_level.append(indices[j].item())
         fixed_level = np.reshape(np.array(fixed_level), (-1, 14))
         fixed_level = fixed_level.transpose((1, 0))
 
-    return level.Level(data=fixed_level)
+    return level.Level(data = fixed_level)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
