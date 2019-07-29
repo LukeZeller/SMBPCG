@@ -5,7 +5,8 @@ import numpy as np
 from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, \
                              DEFAULT_LATENT_VECTOR, \
                              DEFAULT_CORRELATION_SUMMARY_FILE, \
-                             EPS
+                             EPS, \
+                             DEFAULT_LEVEL_ROOT_DIRECTORY
 from common.simulation import SimulationProxy, play_1_1
 from common.simulate_agent import simulate_level_with_human, replay_level_with_human
 from evolution import evolve
@@ -19,11 +20,11 @@ from evolution.human_evaluation.hyperparameter_random_search \
            dummy_evaluate_hyperparameters
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
-from common.level import load_level_from_ascii_str, level_to_ascii_str
+from common.level import load_level_from_ascii_str, level_to_ascii_str, level_to_jpg
 import random
 import json
 
-### Testing Level Playing ###
+### Testing Level Generation and Playing ###
 
 def test_1_1():
     play_1_1()
@@ -265,7 +266,45 @@ def hp_random_search_script(iterations):
     print("Best hyperparameters: ", cache.best())
     return cache.best()
 
+## Pipeline
+    
+def save_latent_vector(lv, name):
+    root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
+    with open(_get_unique_file(f"{root_dir}/latent_vectors/{name}.txt"), 'w') as lv_file:
+        lv_as_string = " ".join([str(elem) for elem in lv])
+        print(lv_as_string, file = lv_file)
+
+def save_level(level, name, is_pre_lstm):
+    root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
+    lstm_dir = "prelstm" if is_pre_lstm else "postlstm"
+    level_to_jpg(level, 
+                 _get_unique_file(f"{root_dir}/level_images/{lstm_dir}/{name}"),
+                 trim_buffer = False)
+    text = level_to_ascii_str(level)
+    with open(_get_unique_file(f"{root_dir}/level_asciis/{lstm_dir}/{name}.txt"), 'w') as level_file:
+        print(text, file = level_file)
+    
+def generate_best_level_for_hyperparameters(hp, cma_iterations):
+    level, latent_vector, fitness = evolve.run(default_hyperparameters, 
+                                      cma_iterations, 
+                                      return_fitnesses = False,
+                                      return_level_properties = True)
+    fitness = int(fitness)
+    identifier = f"{fitness}_{cma_iterations}"
+    
+    save_latent_vector(latent_vector, identifier)
+    
+    save_level(level, identifier, is_pre_lstm = True)
+    
+    level_as_text = level_to_ascii_str(level)
+    cleaned_level_as_text = level_as_text ## RHS should be: lstm_client.apply_generator(level_as_text)
+    cleaned_level = load_level_from_ascii_str(cleaned_level_as_text)
+    
+    save_level(cleaned_level, identifier, is_pre_lstm = False)
+        
+    return cleaned_level
+
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    res = hp_random_search_script(5)
+    res = generate_best_level_for_hyperparameters(default_hyperparameters, 1)
