@@ -20,6 +20,7 @@ gan/original_files/
 
 # Ignore images stored in results
 results/**/*.png
+results/**/*.jpg
 
 # Ignore storage and cache files in results
 results/**/*.txt
