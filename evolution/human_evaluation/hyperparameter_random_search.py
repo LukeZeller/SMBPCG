@@ -1,5 +1,5 @@
 import numpy as np
-from common.constants import DEBUG_PRINT, CMA_ITERATIONS_FOR_HUMAN_EVALUATION
+from common.constants import DEBUG_PRINT, CMA_ITERATIONS_FOR_HUMAN_EVALUATION, EPS
 from evolution.evolve import Hyperparameters, run
 from evolution.human_evaluation.rubric import input_rubric, rubric_score
 from common.agents import create_human_agent
@@ -81,7 +81,7 @@ class PopulationGenerator:
             return self.step_size / (1.0 + self.iteration)
     
     def next_population(self, population):
-        assert len(population) >= self.population_size
+        assert len(population) * (self.num_mutations_per_candidate + 1) >= self.population_size
         
         possible_candidates = []
         for candidate, fitness in population:
@@ -95,6 +95,9 @@ class PopulationGenerator:
             print("Iteration: ", self.iteration, "Radius: ", self.radius())
         self.iteration += 1
         return best_of(possible_candidates, self.population_size)
+    
+    def stop(self):
+        return self.radius() <= EPS
     
 ### Class that handles how human evaluation results are stored via json ###    
     
@@ -167,4 +170,7 @@ class HyperparameterCache:
     
     def reset(self):
         self._initialize()
+        
+    def stop(self):
+        return self.population_generator.stop()
     
