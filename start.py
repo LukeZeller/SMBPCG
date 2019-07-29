@@ -290,8 +290,7 @@ def save_level(level, name, is_pre_lstm):
     with open(_get_unique_file(f"{root_dir}/level_asciis/{lstm_dir}/{name}.txt"), 'w') as level_file:
         print(text, file = level_file)
     
-def generate_best_level_for_hyperparameters(hp, cma_iterations, number_of_level_segments):
-    identifier = f"{cma_iterations}_{number_of_level_segments}"
+def generate_best_level_for_hyperparameters(name, hp, cma_iterations, number_of_level_segments):
     merged_level = Level(0)
     for _ in range(number_of_level_segments):
         level, latent_vector, fitness = evolve.run(default_hyperparameters, 
@@ -299,18 +298,32 @@ def generate_best_level_for_hyperparameters(hp, cma_iterations, number_of_level_
                                           return_fitnesses = False,
                                           return_level_properties = True)
         suffix = f"_{int(fitness)}"
-        save_latent_vector(latent_vector, identifier + suffix, fitness)
-        save_level(level, identifier + suffix, is_pre_lstm = True)
+        save_latent_vector(latent_vector, name + suffix, fitness)
+        save_level(level, name + suffix, is_pre_lstm = True)
         merged_level += level
+    save_level(merged_level, name + '_complete', is_pre_lstm = True)
+    return merged_level
     
+def clean_level(name, level):
     lstm_client.load_lstm()
-    level_as_text = level_to_ascii_str(merged_level)
+    level_as_text = level_to_ascii_str(level)
     cleaned_level = lstm_client.apply_lstm(level_as_text)
     
-    save_level(cleaned_level, identifier, is_pre_lstm = False)
+    save_level(cleaned_level, name, is_pre_lstm = False)
     return cleaned_level
 
+def pipeline(name, hp, cma_iterations, number_of_level_segments):
+    identifier = f"{name}_{cma_iterations}_{number_of_level_segments}"
+    whole_level = generate_best_level_for_hyperparameters(name = identifier,
+                                                          hp = hp,
+                                                          cma_iterations = cma_iterations,
+                                                          number_of_level_segments = number_of_level_segments)
+    cleaned_level = clean_level(name = identifier, level = whole_level)
+    return cleaned_level
+    
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    res = generate_best_level_for_hyperparameters(default_hyperparameters, 1, 2)
+    pipeline_name = 'test'
+    level = generate_best_level_for_hyperparameters(pipeline_name, default_hyperparameters, 1, 3)
+    cleaned_level = clean_level(pipeline_name, level)
