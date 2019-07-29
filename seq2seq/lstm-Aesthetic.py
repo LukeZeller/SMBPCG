@@ -94,7 +94,7 @@ def _perturb_level(level_by_col, probp_d, probs_d, probs_c):
                     level_cpy[p_itr + 14] = "-"
                     p_itr += 1
         elif level_cpy[i] == "X" and i % 14 != 13 and random.randint(0, 99) < probs_d:
-                perturbed_level.append(random.choice(piecesFull))
+                perturbed_level.append("-")
         else:
             perturbed_level.append(level_cpy[i])
 
@@ -146,6 +146,7 @@ class LSTMTagger(nn.Module):
 
     def forward(self, sentence):
         embeds = self.word_embeddings(sentence)
+        self.lstm.flatten_parameters()
         lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
         tag_scores = F.log_softmax(tag_space, dim=1)
