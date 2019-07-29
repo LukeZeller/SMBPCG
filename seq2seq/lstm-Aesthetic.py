@@ -28,10 +28,6 @@ parser.add_argument('--probs', type=int, default=30,
                     help='prob a stair tile is changed')
 opt = parser.parse_args()
 
-assert torch.cuda.is_available()
-torch.cuda.set_device(0)
-
-
 def prepare_sequence(seq, to_ix):
     idxs = [to_ix[w] for w in seq]
     res = torch.tensor(idxs, dtype=torch.long).cuda()
@@ -130,19 +126,6 @@ def prepare_data():
             testing_data.append(_perturb_level(level_by_cols, opt.probp, opt.probs, opt.probs))
     return training_data, testing_data
 
-
-training_data, testing_data = prepare_data()
-for i, data in enumerate(training_data):
-    swapi = random.randrange(i, len(training_data))
-    training_data[i], training_data[swapi] = training_data[swapi], data
-for i, data in enumerate(testing_data):
-    swapi = random.randrange(i, len(testing_data))
-    testing_data[i], testing_data[swapi] = testing_data[swapi], data
-
-EMBEDDING_DIM = opt.edim
-HIDDEN_DIM = opt.hdim
-
-
 class LSTMTagger(nn.Module):
 
     def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
@@ -165,78 +148,92 @@ class LSTMTagger(nn.Module):
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
-
-
-model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(tileMapping),
-                   len(tileMapping))
-model.cuda()
-if torch.cuda.device_count() > 1:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    model = nn.DataParallel(model)
-
-loss_function = nn.NLLLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.1)
-
-for epoch in tqdm(range(opt.niter)):
-    for sentence, tags in training_data:
-        # Step 1. Remember that Pytorch accumulates gradients.
-        # We need to clear them out before each instance
-        model.zero_grad()
-
-        # Step 2. Get our inputs ready for the network
-        sentence_in = prepare_sequence(sentence, tileMapping)
-        targets = prepare_sequence(tags, tileMapping)
-
-        # Step 3. Run our forward pass.
-        tag_scores = model(sentence_in)
-
-        # Step 4. Compute the loss, gradients, and update the parameters by
-        #  calling optimizer.step()
-        loss = loss_function(tag_scores, targets)
-        loss.backward()
-        optimizer.step()
-
-torch.save(model.state_dict(), "lstm_" + str(opt.tsize) + "_" + str(opt.niter) + ".pth")
-
-# Find training accuracy
-# with torch.no_grad():
-#     correct = 0
-#     total = 0
-#     for i in range(len(training_data)):
-#         inputs = prepare_sequence(training_data[i][0], tileMapping)
-#         tag_scores = model(inputs)
-#         values, indices = torch.max(tag_scores, 1)
-#         for j in range(len(indices)):
-#             total += 1
-#             if indices[j].item() == tileMapping[training_data[i][1][j]]:
-#                 correct += 1
-#     accuracy = (correct / total) * 100
-#     print("Training accuracy " + str(round(accuracy, 2)) + "%")
-
-# Find Test accuracy
-with torch.no_grad():
-    correct = 0
-    fullCorrect = 0
-    total = 0
-    tilesIncorrect = [[0 for i in range(10)] for j in range(10)]
-    for i in range(len(testing_data)):
-        inputs = prepare_sequence(testing_data[i][0], tileMapping)
-        tag_scores = model(inputs)
-        values, indices = torch.max(tag_scores, 1)
-        isCorrect = True
-        for j in range(len(indices)):
-            total += 1
-            if indices[j].item() == tileMapping[testing_data[i][1][j]]:
-                correct += 1
-            else:
-                isCorrect = False
-                tilesIncorrect[tileMapping[testing_data[i][1][j]]][indices[j].item()] += 1
-        if isCorrect:
-            fullCorrect += 1
-    accuracy = (correct / total) * 100
-    print("Testing accuracy " + str(round(accuracy, 2)) + "%")
-    fullAccuracy = (fullCorrect / len(testing_data)) * 100
-    print("Testing levels that were fully correct: " +
-          str(round(fullAccuracy, 2)) + "%")
-    for row in tilesIncorrect:
-        print(row)
+ 
+if __name__ == '__main__':
+    assert torch.cuda.is_available()
+    torch.cuda.set_device(0)
+    
+    training_data, testing_data = prepare_data()
+    for i, data in enumerate(training_data):
+        swapi = random.randrange(i, len(training_data))
+        training_data[i], training_data[swapi] = training_data[swapi], data
+    for i, data in enumerate(testing_data):
+        swapi = random.randrange(i, len(testing_data))
+        testing_data[i], testing_data[swapi] = testing_data[swapi], data
+    
+    EMBEDDING_DIM = opt.edim
+    HIDDEN_DIM = opt.hdim
+    
+    model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(tileMapping),
+                       len(tileMapping))
+    model.cuda()
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        model = nn.DataParallel(model)
+    
+    loss_function = nn.NLLLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.1)
+    
+    for epoch in tqdm(range(opt.niter)):
+        for sentence, tags in training_data:
+            # Step 1. Remember that Pytorch accumulates gradients.
+            # We need to clear them out before each instance
+            model.zero_grad()
+    
+            # Step 2. Get our inputs ready for the network
+            sentence_in = prepare_sequence(sentence, tileMapping)
+            targets = prepare_sequence(tags, tileMapping)
+    
+            # Step 3. Run our forward pass.
+            tag_scores = model(sentence_in)
+    
+            # Step 4. Compute the loss, gradients, and update the parameters by
+            #  calling optimizer.step()
+            loss = loss_function(tag_scores, targets)
+            loss.backward()
+            optimizer.step()
+    
+    torch.save(model.state_dict(), "lstm_" + str(opt.tsize) + "_" + str(opt.niter) + ".pth")
+    
+    # Find training accuracy
+    # with torch.no_grad():
+    #     correct = 0
+    #     total = 0
+    #     for i in range(len(training_data)):
+    #         inputs = prepare_sequence(training_data[i][0], tileMapping)
+    #         tag_scores = model(inputs)
+    #         values, indices = torch.max(tag_scores, 1)
+    #         for j in range(len(indices)):
+    #             total += 1
+    #             if indices[j].item() == tileMapping[training_data[i][1][j]]:
+    #                 correct += 1
+    #     accuracy = (correct / total) * 100
+    #     print("Training accuracy " + str(round(accuracy, 2)) + "%")
+    
+    # Find Test accuracy
+    with torch.no_grad():
+        correct = 0
+        fullCorrect = 0
+        total = 0
+        tilesIncorrect = [[0 for i in range(10)] for j in range(10)]
+        for i in range(len(testing_data)):
+            inputs = prepare_sequence(testing_data[i][0], tileMapping)
+            tag_scores = model(inputs)
+            values, indices = torch.max(tag_scores, 1)
+            isCorrect = True
+            for j in range(len(indices)):
+                total += 1
+                if indices[j].item() == tileMapping[testing_data[i][1][j]]:
+                    correct += 1
+                else:
+                    isCorrect = False
+                    tilesIncorrect[tileMapping[testing_data[i][1][j]]][indices[j].item()] += 1
+            if isCorrect:
+                fullCorrect += 1
+        accuracy = (correct / total) * 100
+        print("Testing accuracy " + str(round(accuracy, 2)) + "%")
+        fullAccuracy = (fullCorrect / len(testing_data)) * 100
+        print("Testing levels that were fully correct: " +
+              str(round(fullAccuracy, 2)) + "%")
+        for row in tilesIncorrect:
+            print(row)
