@@ -19,6 +19,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
            dummy_evaluate_hyperparameters
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
+from tqdm import tqdm
 import random
 import json
 
@@ -164,8 +165,8 @@ def correlation_test_script(iterations):
        
 def test_tuning(evaluation = human_evaluate_hyperparameters):
     population_generator = PopulationGenerator(evaluator = evaluation,
-                                               population_size = 3,
-                                               num_mutations_per_candidate = 5,
+                                               population_size = 5,
+                                               num_mutations_per_candidate = 1,
                                                step_size = 10.0,
                                                adaptive_step = True)
     cache = HyperparameterCache(generator = population_generator, storage_file = DEFAULT_HYPERPARAMETER_CACHE_FILE)
@@ -175,19 +176,25 @@ def num_steps_to_optima(num_generations,
                         evaluation,
                         optimal_fitness):
     population_generator = PopulationGenerator(evaluator = evaluation, 
-                                               population_size = 4,
-                                               num_mutations_per_candidate = 4,
-                                               step_size = 5.0,
+                                               population_size = 3,
+                                               num_mutations_per_candidate = 2,
+                                               step_size = 10.0,
                                                adaptive_step = True)
     cache = HyperparameterCache(generator = population_generator, 
                                 storage_file = "results/data/hyperparameters/hyperparameter_optima_check_cache.json")
     cache.reset()
+    min_dist = float('inf')
     for generation in range(num_generations):
         candidate, fitness = cache.best()
-        if abs(optimal_fitness - fitness) < EPS:
+        distance = abs(optimal_fitness - fitness)
+        if distance < EPS:
             print(f"Reached optima at generation {generation}")
             return generation
-    print("Never got close to optima")
+        min_dist = min(min_dist, distance)
+        if generation == 12:
+            print(min_dist)
+        cache.get_next_generation()
+    print(f"Never got close to optima, closest point was {min_dist} away")
     return None
 
 
@@ -231,7 +238,19 @@ def plot_tuning(num_generations, evaluation):
                      file_path = f"results/plots/hyperparameters/{y_axis_name}_per_random_search_generation.png")
     return cache
 
+def hp_random_search_script(iterations):
+    print("Initial generation")
+    cache = test_tuning()
+    for i in range(iterations):
+        print("Iteration: ", i)
+        cache.get_next_generation()
+        if cache.stop():
+            print("Ending early because radius is too small")
+            break
+    print("Best hyperparameters: ", cache.best())
+    return cache.best()
+
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    plot_run_fitness(default_hyperparameters, 1)
+    res = hp_random_search_script(5)
