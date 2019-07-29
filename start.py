@@ -19,6 +19,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
            human_evaluate_hyperparameters, \
            dummy_evaluate_hyperparameters
 from timeit import default_timer as timer
+from seq2seq import lstm_client
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
 from common.level import load_level_from_ascii_str, level_to_ascii_str, level_to_jpg
 import random
@@ -285,10 +286,17 @@ def save_level(level, name, is_pre_lstm):
         print(text, file = level_file)
     
 def generate_best_level_for_hyperparameters(hp, cma_iterations):
-    level, latent_vector, fitness = evolve.run(default_hyperparameters, 
+    """level, latent_vector, fitness = evolve.run(default_hyperparameters, 
                                       cma_iterations, 
                                       return_fitnesses = False,
                                       return_level_properties = True)
+    """
+    generator_client.load_generator()
+    latent_vector = np.random.uniform(-1, 1, 32)
+    level = generator_client.apply_generator(latent_vector)
+    fitness = -5.0
+
+    lstm_client.load_lstm()
     fitness = int(fitness)
     identifier = f"{fitness}_{cma_iterations}"
     
@@ -297,7 +305,8 @@ def generate_best_level_for_hyperparameters(hp, cma_iterations):
     save_level(level, identifier, is_pre_lstm = True)
     
     level_as_text = level_to_ascii_str(level)
-    cleaned_level_as_text = level_as_text ## RHS should be: lstm_client.apply_generator(level_as_text)
+    cleaned_level_as_text = lstm_client.apply_lstm(level_as_text)
+    print("Type of cleaned level: ", type(cleaned_level_as_text))
     cleaned_level = load_level_from_ascii_str(cleaned_level_as_text)
     
     save_level(cleaned_level, identifier, is_pre_lstm = False)
