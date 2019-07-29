@@ -19,7 +19,7 @@ from evolution.human_evaluation.hyperparameter_random_search \
            dummy_evaluate_hyperparameters
 from timeit import default_timer as timer
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
-from tqdm import tqdm
+from common.level import load_level_from_ascii_str, level_to_ascii_str
 import random
 import json
 
@@ -27,16 +27,31 @@ import json
 
 def test_1_1():
     play_1_1()
-
-def test_gan():
+    
+def random_level():
     generator_client.load_generator()
     latent_vector = np.random.uniform(-1, 1, 32)
+    print("Latent vector:\n", latent_vector)
     level = generator_client.apply_generator(latent_vector)
+    return level
+
+def test_gan():
+    level = random_level()
     print("Play level once:")
     simulate_level_with_human(level)
-    print("Latent vector:\n", latent_vector)
     print("Evaluate level:")
     return evaluate_level(level)
+
+### Test Textual level Representation ###
+    
+def test_level_to_ascii_and_back():
+    level = random_level()
+    ascii_repr = level_to_ascii_str(level)
+    level_copy = load_level_from_ascii_str(ascii_repr)
+    assert level_copy.width == level.width
+    assert level_copy.height == level.height
+    assert ascii_repr == level_to_ascii_str(level_copy)
+    print("Checks passed!")
 
 ### Testing Level Fitness ###
 
@@ -253,4 +268,8 @@ def hp_random_search_script(iterations):
 ### Experiment Below ###
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     res = hp_random_search_script(5)
+=======
+    plot_run_fitness(default_hyperparameters, 750)
+>>>>>>> a7cb79c3cdfb54145060f9681eb94a90ae1b7f43
