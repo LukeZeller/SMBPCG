@@ -19,9 +19,9 @@ piecesFull = ["X", "S", "-", "?", "Q", "E", "<", ">", "[", "]"]
 pipe = ["<", ">", "[", "]"]
 revTileMapping = {v: k for k, v in tileMapping.items()}
 
-DEF_LSTM_MODEL_FILE = 'lstm_2_2.pth'
-DEF_EMBEDDING_DIM = 64
-DEF_HIDDEN_DIM = 64
+DEF_LSTM_MODEL_FILE = 'lstm_100_100.pth'
+DEF_EMBEDDING_DIM = 256
+DEF_HIDDEN_DIM = 256
 
 lstm = None
 
