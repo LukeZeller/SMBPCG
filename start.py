@@ -10,7 +10,7 @@ from common.constants import DEFAULT_HYPERPARAMETER_CACHE_FILE, \
 from common.simulation import SimulationProxy, play_1_1
 from common.simulate_agent import simulate_level_with_human, replay_level_with_human
 from evolution import evolve
-from evolution.evolve import default_hyperparameters, bad_hyperparameters
+from evolution.evolve import default_hyperparameters, bad_hyperparameters, Hyperparameters
 from gan import generator_client
 from common.plotting import plot_to_file, _get_unique_file
 from evolution.human_evaluation.hyperparameter_random_search \
@@ -21,7 +21,10 @@ from evolution.human_evaluation.hyperparameter_random_search \
 from timeit import default_timer as timer
 from seq2seq import lstm_client
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
-from common.level import load_level_from_ascii_str, level_to_ascii_str, level_to_jpg
+from common.level import load_level_from_ascii_str, \
+                         level_to_ascii_str, \
+                         level_to_jpg, \
+                         Level
 import random
 import json
 
@@ -255,25 +258,15 @@ def plot_tuning(num_generations, evaluation):
                      file_path = f"results/plots/hyperparameters/{y_axis_name}_per_random_search_generation.png")
     return cache
 
-def hp_random_search_script(iterations):
-    print("Initial generation")
-    cache = test_tuning()
-    for i in range(iterations):
-        print("Iteration: ", i)
-        cache.get_next_generation()
-        if cache.stop():
-            print("Ending early because radius is too small")
-            break
-    print("Best hyperparameters: ", cache.best())
-    return cache.best()
-
 ## Pipeline
     
-def save_latent_vector(lv, name):
+def save_latent_vector(lv, name, fitness = None):
     root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
     with open(_get_unique_file(f"{root_dir}/latent_vectors/{name}.txt"), 'w') as lv_file:
         lv_as_string = " ".join([str(elem) for elem in lv])
         print(lv_as_string, file = lv_file)
+        if fitness:
+            print(fitness, file = lv_file)
 
 def save_level(level, name, is_pre_lstm):
     root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
@@ -284,28 +277,56 @@ def save_level(level, name, is_pre_lstm):
     text = level_to_ascii_str(level)
     with open(_get_unique_file(f"{root_dir}/level_asciis/{lstm_dir}/{name}.txt"), 'w') as level_file:
         print(text, file = level_file)
+        
+def hp_random_search_script(iterations):
+    print("Initial generation")
+    cache = test_tuning()
+    for i in range(iterations):
+        print("Iteration: ", i)
+        cache.get_next_generation()
+        if cache.stop():
+            print("Ending early because radius is too small")
+            break
+    print("Best hyperparameters: ", cache.best()[0])
+    return cache.best()[0]
     
-def generate_best_level_for_hyperparameters(hp, cma_iterations):
-    level, latent_vector, fitness = evolve.run(default_hyperparameters, 
-                                      cma_iterations, 
-                                      return_fitnesses = False,
-                                      return_level_properties = True)
+def generate_best_level_for_hyperparameters(name, hp, cma_iterations, number_of_level_segments):
+    merged_level = Level(0)
+    for _ in range(number_of_level_segments):
+        level, latent_vector, fitness = evolve.run(default_hyperparameters, 
+                                          cma_iterations, 
+                                          return_fitnesses = False,
+                                          return_level_properties = True)
+        suffix = f"_{int(fitness)}"
+        save_latent_vector(latent_vector, name + suffix, fitness)
+        save_level(level, name + suffix, is_pre_lstm = True)
+        merged_level += level
+    save_level(merged_level, name + '_complete', is_pre_lstm = True)
+    return merged_level
+    
+def clean_level(name, level):
     lstm_client.load_lstm()
-    fitness = int(fitness)
-    identifier = f"{fitness}_{cma_iterations}"
-    
-    save_latent_vector(latent_vector, identifier)
-    
-    save_level(level, identifier, is_pre_lstm = True)
-    
     level_as_text = level_to_ascii_str(level)
     cleaned_level = lstm_client.apply_lstm(level_as_text)
     
-    save_level(cleaned_level, identifier, is_pre_lstm = False)
-        
+    save_level(cleaned_level, name, is_pre_lstm = False)
     return cleaned_level
 
+def pipeline(name):
+    best_hp = hp_random_search_script(15)
+    whole_level = generate_best_level_for_hyperparameters(name = name,
+                                                          hp = best_hp,
+                                                          cma_iterations = 750,
+                                                          number_of_level_segments = 7)
+    cleaned_level = clean_level(name = name, level = whole_level)
+    return cleaned_level
+    
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    res = generate_best_level_for_hyperparameters(default_hyperparameters, 1)
+    pipeline_name = 'test'
+    level = generate_best_level_for_hyperparameters(pipeline_name, 
+                                                    Hyperparameters(2.09, 5.83, 7.18), 
+                                                    1, 
+                                                    number_of_level_segments = 3)
+    cleaned_level = clean_level(pipeline_name, level)
