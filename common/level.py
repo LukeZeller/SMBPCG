@@ -3,6 +3,21 @@ import numpy as np
 
 import config.config_mgr as config_mgr
 
+config_mgr.setup_environment()
+import jnius
+
+# --- Java class names ---
+MARIO_LEVEL_VIEWER_CLASS = 'viewer.MarioLevelViewer'
+LEVEL_PARSER_CLASS = 'ch.idsia.mario.engine.level.LevelParser'
+
+# Project classes
+_J_MarioLevelViewer = jnius.autoclass(MARIO_LEVEL_VIEWER_CLASS)
+_J_LevelParser = jnius.autoclass(LEVEL_PARSER_CLASS)
+
+# Standard Library classes
+_J_ArrayList = jnius.autoclass('java.util.ArrayList')
+_J_Integer = jnius.autoclass('java.lang.Integer')
+
 LEVEL_DATA_REL = 'data/full_levels'
 LEVEL_DATA_DIR_PATH = config_mgr.get_absolute_path(LEVEL_DATA_REL)
 LEVEL_DATA_DIR = str(LEVEL_DATA_DIR_PATH)
@@ -46,6 +61,26 @@ int_char_map = {
     11: 'B',
     12: 'b'
 }
+
+java_level_cache = {}
+def _get_java_level(level):
+    if level in java_level_cache:
+        return java_level_cache[level].copy()
+
+    # j_level_arraylist is a Java ArrayList of rows in the level
+    j_level_list = _J_ArrayList(level.height)
+    for y in range(level.height):
+        # Each row is a List of Integers representing tiles
+        j_row_list = _J_ArrayList(level.width)
+        for x in range(level.width):
+            # Second argument expects java Object but python int converts to
+            # java primitive int, so we must wrap in Integer
+            j_row_list.add(_J_Integer(level.get_tile_int(x, y)))
+        j_level_list.add(j_row_list)
+
+    res = _J_LevelParser.createLevelJson(j_level_list)
+    java_level_cache[level] = res
+    return res.copy()
 
 
 def load_level_from_json(json_fname):
@@ -96,6 +131,11 @@ def level_to_ascii_str(level, fname = None):
         rel_path = 'text/' + fname
         _save_string(rel_path, res_str)
     return res_str
+
+def level_to_jpg(level, fname, trim_buffer):
+    if ".jpg" in fname:
+        fname = fname[:-4]
+    _J_MarioLevelViewer.saveLevel(_get_java_level(level), fname, trim_buffer)
 
 
 class Level(object):

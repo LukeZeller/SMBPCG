@@ -1,7 +1,7 @@
 from config import config_mgr
 from common import constants
 import common.agents
-import common.level
+from common.level import load_level_from_json, _get_java_level
 
 config_mgr.setup_environment()
 import jnius
@@ -34,29 +34,6 @@ def play_1_1():
 
 def proxy_test():
     return
-
-
-java_level_cache = {}
-
-
-def _get_java_level(level):
-    if level in java_level_cache:
-        return java_level_cache[level].copy()
-
-    # j_level_arraylist is a Java ArrayList of rows in the level
-    j_level_list = _J_ArrayList(level.height)
-    for y in range(level.height):
-        # Each row is a List of Integers representing tiles
-        j_row_list = _J_ArrayList(level.width)
-        for x in range(level.width):
-            # Second argument expects java Object but python int converts to
-            # java primitive int, so we must wrap in Integer
-            j_row_list.add(_J_Integer(level.get_tile_int(x, y)))
-        j_level_list.add(j_row_list)
-
-    res = _J_LevelParser.createLevelJson(j_level_list)
-    java_level_cache[level] = res
-    return res.copy()
 
 
 def _instantiated_simulation_handler(level, agent, visualize):
@@ -102,7 +79,7 @@ class _EvaluationInfoProxy(object):
 class SimulationProxy(object):
     @staticmethod
     def from_json_file(json_fname, human_tested=False):
-        level = common.level.load_level_from_json(json_fname)
+        level = load_level_from_json(json_fname)
         agent = common.agents.create_astar_agent() if not human_tested else \
             common.agents.create_human_agent()
         return SimulationProxy(level, agent)
