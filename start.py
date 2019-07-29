@@ -305,9 +305,7 @@ def generate_best_level_for_hyperparameters(hp, cma_iterations):
     save_level(level, identifier, is_pre_lstm = True)
     
     level_as_text = level_to_ascii_str(level)
-    cleaned_level_as_text = lstm_client.apply_lstm(level_as_text)
-    print("Type of cleaned level: ", type(cleaned_level_as_text))
-    cleaned_level = load_level_from_ascii_str(cleaned_level_as_text)
+    cleaned_level = lstm_client.apply_lstm(level_as_text)
     
     save_level(cleaned_level, identifier, is_pre_lstm = False)
         
