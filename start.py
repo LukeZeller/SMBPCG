@@ -268,8 +268,4 @@ def hp_random_search_script(iterations):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     res = hp_random_search_script(5)
-=======
-    plot_run_fitness(default_hyperparameters, 750)
->>>>>>> a7cb79c3cdfb54145060f9681eb94a90ae1b7f43
