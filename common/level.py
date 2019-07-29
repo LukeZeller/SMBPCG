@@ -195,3 +195,15 @@ class Level(object):
         if tile_i not in int_char_map:
             raise ValueError("Invalid tile integer [{0}] provided".format(tile_i))
         self.__tiles[y, x] = tile_i
+        
+    def __add__(self, other):
+        assert self.height == other.height, "You can only append levels with the same height"
+        level = Level(self.width + other.width, self.height)
+        for i in range(self.height):
+            for j in range(self.width):
+                level.__tiles[i][j] = self.__tiles[i][j]
+        for i in range(other.height):
+            for j in range(other.width):
+                level.__tiles[i][j + self.width] = other.__tiles[i][j]
+        return level
+        
