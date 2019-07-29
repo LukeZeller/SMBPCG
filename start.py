@@ -21,7 +21,10 @@ from evolution.human_evaluation.hyperparameter_random_search \
 from timeit import default_timer as timer
 from seq2seq import lstm_client
 from evolution.human_evaluation.hyperparameter_random_search import evaluate_level
-from common.level import load_level_from_ascii_str, level_to_ascii_str, level_to_jpg
+from common.level import load_level_from_ascii_str, \
+                         level_to_ascii_str, \
+                         level_to_jpg, \
+                         Level
 import random
 import json
 
@@ -269,11 +272,13 @@ def hp_random_search_script(iterations):
 
 ## Pipeline
     
-def save_latent_vector(lv, name):
+def save_latent_vector(lv, name, fitness = None):
     root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
     with open(_get_unique_file(f"{root_dir}/latent_vectors/{name}.txt"), 'w') as lv_file:
         lv_as_string = " ".join([str(elem) for elem in lv])
         print(lv_as_string, file = lv_file)
+        if fitness:
+            print(fitness, file = lv_file)
 
 def save_level(level, name, is_pre_lstm):
     root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
@@ -285,27 +290,27 @@ def save_level(level, name, is_pre_lstm):
     with open(_get_unique_file(f"{root_dir}/level_asciis/{lstm_dir}/{name}.txt"), 'w') as level_file:
         print(text, file = level_file)
     
-def generate_best_level_for_hyperparameters(hp, cma_iterations):
-    level, latent_vector, fitness = evolve.run(default_hyperparameters, 
-                                      cma_iterations, 
-                                      return_fitnesses = False,
-                                      return_level_properties = True)
+def generate_best_level_for_hyperparameters(hp, cma_iterations, number_of_level_segments):
+    identifier = f"{cma_iterations}_{number_of_level_segments}"
+    merged_level = Level(0)
+    for _ in range(number_of_level_segments):
+        level, latent_vector, fitness = evolve.run(default_hyperparameters, 
+                                          cma_iterations, 
+                                          return_fitnesses = False,
+                                          return_level_properties = True)
+        suffix = f"_{int(fitness)}"
+        save_latent_vector(latent_vector, identifier + suffix, fitness)
+        save_level(level, identifier + suffix, is_pre_lstm = True)
+        merged_level += level
+    
     lstm_client.load_lstm()
-    fitness = int(fitness)
-    identifier = f"{fitness}_{cma_iterations}"
-    
-    save_latent_vector(latent_vector, identifier)
-    
-    save_level(level, identifier, is_pre_lstm = True)
-    
-    level_as_text = level_to_ascii_str(level)
+    level_as_text = level_to_ascii_str(merged_level)
     cleaned_level = lstm_client.apply_lstm(level_as_text)
     
     save_level(cleaned_level, identifier, is_pre_lstm = False)
-        
     return cleaned_level
 
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    res = generate_best_level_for_hyperparameters(default_hyperparameters, 1)
+    res = generate_best_level_for_hyperparameters(default_hyperparameters, 1, 2)
