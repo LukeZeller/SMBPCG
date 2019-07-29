@@ -103,7 +103,7 @@ def _latent_vector_fitness(latent_vector, hp):
     level = generator_client.apply_generator(latent_vector)
     return _multiple_run_fitness(level, hp)
 
-def run(hyperparameters, max_iterations, return_fitnesses = False):
+def run(hyperparameters, max_iterations, return_fitnesses = False, return_level_properties = False):
     generator_client.load_generator()
     fitness = functools.partial(_latent_vector_fitness, hp = hyperparameters)
     
@@ -167,6 +167,7 @@ def run(hyperparameters, max_iterations, return_fitnesses = False):
         print(type(cma_es.best.get()))
 
     best_lv_f = cma_es.best.get()[0]
+    best_cma_fitness = cma_es.best.get()[1]
 
     if DEBUG_PRINT:
         print("Best Latent Vector (According to framework): " + ', '.join(str(best_lv_f).split()))
@@ -175,8 +176,13 @@ def run(hyperparameters, max_iterations, return_fitnesses = False):
         print("Best Latent Vector (According to manual bookkeeping): " + ', '.join(str(best_lv).split()))
         print("Corresponding fitness: " + str(fitness(best_lv)))
         print("Saved best fitness: " + str(best_fitness))
-        print("Type of best_lv_f: ", type(best_lv_f))   
+        print("Type of best_lv_f: ", type(best_lv_f)) 
+    
+    # Don't have the following combination handled - should not use these boolean flags long-term
+    assert not (return_fitnesses and return_level_properties)
     if return_fitnesses:
         return generator_client.apply_generator(best_lv_f), avg_fits, min_fits
+    elif return_level_properties:
+        return generator_client.apply_generator(best_lv_f), best_lv_f, best_cma_fitness
     else:
         return generator_client.apply_generator(best_lv_f)
