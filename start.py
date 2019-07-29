@@ -286,16 +286,10 @@ def save_level(level, name, is_pre_lstm):
         print(text, file = level_file)
     
 def generate_best_level_for_hyperparameters(hp, cma_iterations):
-    """level, latent_vector, fitness = evolve.run(default_hyperparameters, 
+    level, latent_vector, fitness = evolve.run(default_hyperparameters, 
                                       cma_iterations, 
                                       return_fitnesses = False,
                                       return_level_properties = True)
-    """
-    generator_client.load_generator()
-    latent_vector = np.random.uniform(-1, 1, 32)
-    level = generator_client.apply_generator(latent_vector)
-    fitness = -5.0
-
     lstm_client.load_lstm()
     fitness = int(fitness)
     identifier = f"{fitness}_{cma_iterations}"
