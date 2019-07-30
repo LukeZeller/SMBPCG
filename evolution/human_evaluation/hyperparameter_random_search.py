@@ -103,6 +103,7 @@ class PopulationGenerator:
     
 CURRENT = "CURRENT"
 OLD = "OLD"
+AVERAGE = "AVERAGE"
 class HyperparameterCache:
     def __init__(self, 
                  storage_file,
@@ -119,11 +120,18 @@ class HyperparameterCache:
             self.ratings = HyperparameterCache._decode(json.load(json_file))
         
     def _save(self):
+        self._save_current_average()
         with open(self.storage_file, 'w') as json_file:
             json.dump(HyperparameterCache._encode(self.ratings), json_file)
+            
+    def _save_current_average(self):
+        current_sum = 0.0
+        for hp, rating in self.ratings[CURRENT]:
+            current_sum += rating
+        self.ratings[AVERAGE].append(current_sum / len(self.ratings[CURRENT]))
         
     def _initialize(self):
-        self.ratings = {CURRENT : [], OLD : []}
+        self.ratings = {CURRENT : [], OLD : [], AVERAGE : []}
         self.ratings[CURRENT] = self.population_generator.initial_population()
         self._save()
         
@@ -173,4 +181,8 @@ class HyperparameterCache:
         
     def stop(self):
         return self.population_generator.stop()
+    
+    def get_averages(self):
+        return self.ratings[AVERAGE]
+        
     
