@@ -13,6 +13,7 @@ from evolution import evolve
 from evolution.evolve import default_hyperparameters, bad_hyperparameters, Hyperparameters
 from gan import generator_client
 from common.plotting import plot_to_file, _get_unique_file
+from common.writers import save_latent_vector, save_level
 from evolution.human_evaluation.hyperparameter_random_search \
     import PopulationGenerator, \
            HyperparameterCache, \
@@ -259,24 +260,6 @@ def plot_tuning(num_generations, evaluation):
     return cache
 
 ## Pipeline
-    
-def save_latent_vector(lv, name, fitness = None):
-    root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
-    with open(_get_unique_file(f"{root_dir}/latent_vectors/{name}.txt"), 'w') as lv_file:
-        lv_as_string = " ".join([str(elem) for elem in lv])
-        print(lv_as_string, file = lv_file)
-        if fitness:
-            print(fitness, file = lv_file)
-
-def save_level(level, name, is_pre_lstm):
-    root_dir = DEFAULT_LEVEL_ROOT_DIRECTORY
-    lstm_dir = "prelstm" if is_pre_lstm else "postlstm"
-    level_to_jpg(level, 
-                 _get_unique_file(f"{root_dir}/level_images/{lstm_dir}/{name}"),
-                 trim_buffer = False)
-    text = level_to_ascii_str(level)
-    with open(_get_unique_file(f"{root_dir}/level_asciis/{lstm_dir}/{name}.txt"), 'w') as level_file:
-        print(text, file = level_file)
         
 def hp_random_search_script(iterations):
     print("Initial generation")
@@ -324,9 +307,9 @@ def pipeline(name):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pipeline_name = 'test'
+    pipeline_name = 'testing_why_run_is_slow'
     level = generate_best_level_for_hyperparameters(pipeline_name, 
-                                                    Hyperparameters(2.09, 5.83, 7.18), 
-                                                    1, 
+                                                    default_hyperparameters, 
+                                                    16, 
                                                     number_of_level_segments = 3)
     cleaned_level = clean_level(pipeline_name, level)
