@@ -16,4 +16,4 @@ def calculate_difficulty_for_success(info, level):
     else:
         average_number_of_shifts_per_jump = float(num_shifts) / num_jumps
     # The more that the jumps can be shifted, the easier the level is
-    return 3 * constants.LEVEL_LENGTH - average_number_of_shifts_per_jump
+    return -1 - average_number_of_shifts_per_jump

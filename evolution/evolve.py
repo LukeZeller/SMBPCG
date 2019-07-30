@@ -13,7 +13,7 @@ from typing import NamedTuple
 from multiprocessing import Pool
 from time import time
 from tqdm import tqdm
-
+from common.writers import save_level
 
 class Hyperparameters(NamedTuple):
     SUCCESS_COEFFICIENT: float = 1.0
@@ -140,7 +140,8 @@ def run(hyperparameters, max_iterations, return_fitnesses=False, return_level_pr
                 fits = list(pool.map(fitness, population))
         else:
             fits = list(map(fitness, population))
-
+            
+    
         start_append_time = time()
         avg_fits.append(sum(fits) / len(fits))
         min_fits.append(min(fits))
