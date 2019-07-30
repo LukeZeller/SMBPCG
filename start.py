@@ -73,6 +73,11 @@ def test_fitness(random_latent_vector=True):
 
 def test_json_level(json_fname):
     SimulationProxy.from_json_file(json_fname, human_tested=True).invoke()
+    
+def test_text_level(text_fname):
+    with open(text_fname, 'r') as file:
+        level = load_level_from_ascii_str(file.read())
+    replay_level_with_human(level)
 
 ### Testing CMA ###
 
@@ -307,9 +312,9 @@ def pipeline(name):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pipeline_name = 'testing_why_run_is_slow'
+    pipeline_name = 'testing_with_-1_in_difficulty'
     level = generate_best_level_for_hyperparameters(pipeline_name, 
                                                     default_hyperparameters, 
                                                     16, 
-                                                    number_of_level_segments = 3)
+                                                    number_of_level_segments = 7)
     cleaned_level = clean_level(pipeline_name, level)
