@@ -11,7 +11,7 @@ from common.level import Level
 import gan.models.dcgan as dcgan
 
 # ---- Default model parameters for the generator ----
-DEF_GEN_MODEL_FILE = "netG_epoch_10000_0_32.pth"
+DEF_GEN_MODEL_FILE = "netG_epoch_925000.pth"
 DEF_LV_LEN = 32
 DEF_BATCH_SZ = 1
 DEF_IMAGE_SZ = 32
