@@ -191,7 +191,7 @@ def correlation_test_script(iterations):
        
 def test_tuning(evaluation = human_evaluate_hyperparameters):
     population_generator = PopulationGenerator(evaluator = evaluation,
-                                               population_size = 5,
+                                               population_size = 1,
                                                num_mutations_per_candidate = 1,
                                                step_size = 10.0,
                                                adaptive_step = True)
@@ -276,20 +276,26 @@ def hp_random_search_script(iterations):
             print("Ending early because radius is too small")
             break
     print("Best hyperparameters: ", cache.best()[0])
+    plot_to_file("Average Score per Iteration", 
+                 list(range(len(cache.averages))), 
+                 cache.averages, 
+                 "Iteration", 
+                 "Score",
+                 "results/plots/hyperparameters/human_evaluation_scores.png")
     return cache.best()[0]
     
 def generate_best_level_for_hyperparameters(name, hp, cma_iterations, number_of_level_segments):
     merged_level = Level(0)
-    for _ in range(number_of_level_segments):
+    for i in range(number_of_level_segments):
         level, latent_vector, fitness = evolve.run(default_hyperparameters, 
                                           cma_iterations, 
                                           return_fitnesses = False,
                                           return_level_properties = True)
-        suffix = f"_{int(fitness)}"
+        suffix = f"_{i}"
         save_latent_vector(latent_vector, name + suffix, fitness)
         save_level(level, name + suffix, is_pre_lstm = True)
         merged_level += level
-    save_level(merged_level, name + '_complete', is_pre_lstm = True)
+    save_level(merged_level, name + '_full', is_pre_lstm = True)
     return merged_level
     
 def clean_level(name, level):
@@ -312,9 +318,4 @@ def pipeline(name):
 ### Experiment Below ###
 
 if __name__ == '__main__':
-    pipeline_name = 'testing_with_-1_in_difficulty'
-    level = generate_best_level_for_hyperparameters(pipeline_name, 
-                                                    default_hyperparameters, 
-                                                    16, 
-                                                    number_of_level_segments = 7)
-    cleaned_level = clean_level(pipeline_name, level)
+    cache = test_tuning()
