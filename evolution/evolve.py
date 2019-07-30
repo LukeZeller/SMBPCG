@@ -141,11 +141,7 @@ def run(hyperparameters, max_iterations, return_fitnesses=False, return_level_pr
         else:
             fits = list(map(fitness, population))
             
-        #### REMOVE THIS LATER
-        for latent_vector_index, level_latent_vector in enumerate(population):
-            current_level = generator_client.apply_generator(level_latent_vector)
-            save_level(current_level, f"inrun_iteration_{gen_itr}_index_{latent_vector_index}", is_pre_lstm = True)
-
+    
         start_append_time = time()
         avg_fits.append(sum(fits) / len(fits))
         min_fits.append(min(fits))
